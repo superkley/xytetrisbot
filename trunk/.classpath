@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry including="about.png|cn/|cn/keke/|cn/keke/qqtetris/|cn/keke/qqtetris/BlockRotation.java|cn/keke/qqtetris/BlockType.java|cn/keke/qqtetris/BoardUtils.java|cn/keke/qqtetris/CleverMoveResult.java|cn/keke/qqtetris/FaultChecker.java|cn/keke/qqtetris/KeyboardThread.java|cn/keke/qqtetris/LiFoDeque.java|cn/keke/qqtetris/MoveCalculator.java|cn/keke/qqtetris/MoveResult.java|cn/keke/qqtetris/MoveType.java|cn/keke/qqtetris/QQCalculatorAsync.java|cn/keke/qqtetris/QQCalculatorSync.java|cn/keke/qqtetris/QQDebug.java|cn/keke/qqtetris/QQLevel.java|cn/keke/qqtetris/QQRobot.java|cn/keke/qqtetris/QQState.java|cn/keke/qqtetris/QQStats.java|cn/keke/qqtetris/QQTetris.java|cn/keke/qqtetris/QQThread.java|cn/keke/qqtetris/StopWatch.java|cn/keke/qqtetris/StrategyType.java|cn/keke/qqtetris/Tetromino.java|cn/keke/qqtetris/TransformationResult.java|cn/keke/qqtetris/TransformationTask.java|cn/keke/qqtetris/exceptions/|cn/keke/qqtetris/simulator/|cn/keke/qqtetris/test/" kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/3"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
