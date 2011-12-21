@@ -279,7 +279,8 @@ public final class QQTetris extends JFrame {
     }
 
     private static JFrame createAbout() {
-        new JFrame().add(new JPanel() {
+        JFrame aboutFrame = new JFrame();
+        aboutFrame.add(new JPanel() {
 			private static final long serialVersionUID = -4970372227279706816L;
 
 			@Override
@@ -294,13 +295,13 @@ public final class QQTetris extends JFrame {
                 }
             }
         });
-        new JFrame().pack();
-        new JFrame().setTitle("帮助");
-        new JFrame().setSize(410, 260);
-        new JFrame().setResizable(false);
-        new JFrame().setLocationByPlatform(true);
-        new JFrame().setAlwaysOnTop(true);
-        return new JFrame();
+        aboutFrame.pack();
+        aboutFrame.setTitle("帮助");
+        aboutFrame.setSize(410, 260);
+        aboutFrame.setResizable(false);
+        aboutFrame.setLocationByPlatform(true);
+        aboutFrame.setAlwaysOnTop(true);
+        return aboutFrame;
     }
 
 }
