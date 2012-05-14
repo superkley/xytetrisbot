@@ -87,9 +87,6 @@ public class TransformationTest extends TestCase {
         assertEquals(5, stats[2]);
         assertEquals(0, stats[3]);
         assertEquals(2, stats[4]);
-        assertEquals(0, stats[5]);
-        assertEquals(1, stats[6]);
-        assertEquals(11, stats[7]);
 
     }
 }

@@ -14,7 +14,7 @@ import java.util.Arrays;
  * </pre>
  */
 public abstract class MoveCalculator {
-    public static final MoveResult NO_MOVE         = new MoveResult(null, null, 0, 0);
+    public static final MoveResult NO_MOVE = new MoveResult(null, null, 0, 0, true);
     public static final double NO_RESULT_SCORE = Double.NEGATIVE_INFINITY;
 
     public abstract MoveResult findBestMove(QQStats stats, StrategyType strategy, double[] strategyAttrs);
@@ -23,7 +23,7 @@ public abstract class MoveCalculator {
 
     protected boolean slowMoveDetected = false;
 
-    private QQLevel          level            = QQLevel.HARD;
+    private QQLevel level = QQLevel.HARD;
 
     public final BlockType[] initializeNextBlocks(BlockType[] blocks, StrategyType strategy, QQStats stats) {
         int l = blocks.length;
@@ -32,7 +32,6 @@ public abstract class MoveCalculator {
         } else if (this.getLevel() == QQLevel.EASY) {
             return new BlockType[] { blocks[0] };
         } else if (strategy.fastInDanger && stats.highest > QQTetris.PiecesHeight - QQTetris.BlockDrawSize * 3) {
-            stats.setInDanger(true);
             if (this.slowMoveDetected && l > 2) {
                 return Arrays.copyOf(blocks, 2);
             } else {
@@ -55,7 +54,6 @@ public abstract class MoveCalculator {
     }
 
     public static final MoveResult createMove(TransformationResult bestResult, Tetromino t) {
-        MoveResult moveResult;
         int dx = bestResult.getX() - t.x;
         int didx = 0;
         int rDiff = bestResult.getRotationIdx() - t.rotationIdx;
@@ -64,8 +62,8 @@ public abstract class MoveCalculator {
         } else if (rDiff < 0) {
             didx = t.block.rotations.length + rDiff;
         }
-        moveResult = new MoveResult(bestResult, t, didx, dx);
-        return moveResult;
+        t.move.clever = false;
+        return t.move.set(bestResult, t, didx, dx);
     }
 
     public static final ArrayList<Point> findCleverMove(boolean[] board, BlockRotation br, int x, int y) {
@@ -110,8 +108,8 @@ public abstract class MoveCalculator {
         } else if (rDiff < 0) {
             didx = t.block.rotations.length + rDiff;
         }
-
-        return new CleverMoveResult(t, rIdx, didx, list, score);
+        t.move.clever = true;
+        return t.move.set(t, rIdx, didx, list, score);
     }
 
     public static final int getY(BlockRotation br, int x, int[] heights) {
@@ -127,4 +125,9 @@ public abstract class MoveCalculator {
         return y;
     }
 
+    public static final void updateMoveAfterFallen(final MoveResult move, final int fallen) {
+        move.fallen = fallen;
+    }
+
+    public abstract void cancel();
 }

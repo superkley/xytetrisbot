@@ -54,7 +54,7 @@ public class Simulator {
         double averageHeight = 0;
         while (steps < maxSteps) {
             t = new Tetromino(types[0], 0, QQTetris.PiecesWidth / 2, 0);
-            stats = new QQStats(board, t, types);
+            stats = new QQStats(t, types);
             move = this.calculator.findBestMove(stats, this.strategy, strategyAttrs);
             if (move == MoveCalculator.NO_MOVE) {
                 clearedLines[5] = (int) Math.round(averageHeight * 1000000);

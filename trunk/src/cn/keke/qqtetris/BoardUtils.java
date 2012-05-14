@@ -11,30 +11,25 @@ import java.util.List;
 import java.util.Random;
 
 public class BoardUtils {
-    private static final int[]                  EMPTY_DATA_STATS          = new int[] { 0, 0 };
-    private static final int[]                  EMPTY_DETAILED_DATA_STATS = new int[] { 0, 0, 0,
-                                                                          0, 0, 0, 0, 0 };
-    private static final int                    HASH_SEED                 = 173;
-    private static final int                    HASH_PRIME                = 37;
-    private static final ThreadLocal<int[]>     boardStats                = new ThreadLocal<int[]>() {
-                                                                              @Override
-                                                                              protected int[] initialValue() {
-                                                                                  return new int[] { 0, 0 };
-                                                                              }
-                                                                          };
-    private static final ThreadLocal<int[]>     boardDetailedStats        = new ThreadLocal<int[]>() {
-                                                                              @Override
-                                                                              protected int[] initialValue() {
-                                                                                  return new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
-                                                                              }
-                                                                          };
-    private static final ThreadLocal<boolean[]> hashTestBlock             = new ThreadLocal<boolean[]>() {
-                                                                              @Override
-                                                                              protected boolean[] initialValue() {
-                                                                                  return new boolean[QQTetris.BlockDrawSize * QQTetris.BlockDrawSize];
-                                                                              }
-                                                                          };
-    public static final int                     NOT_FOUND                 = Integer.MIN_VALUE;
+    private static final int[] EMPTY_DATA_STATS = new int[] { 0, 0 };
+    private static final int[] EMPTY_DETAILED_DATA_STATS = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+    private static final int HASH_SEED = 173;
+    private static final int HASH_PRIME = 37;
+    private static final ThreadLocal<int[]> boardStats = new ThreadLocal<int[]>() {
+        @Override
+        protected int[] initialValue() {
+            return new int[] { 0, 0 };
+        }
+    };
+    private static final ThreadLocal<int[]> boardDetailedStats = new ThreadLocal<int[]>() {
+        @Override
+        protected int[] initialValue() {
+            return new int[] { 0, 0, 0, 0, 0, 0 };
+        }
+    };
+    private static final boolean[] hashTestBlock = new boolean[QQTetris.BlockDrawSize * QQTetris.BlockDrawSize];
+
+    public static final int NOT_FOUND = Integer.MIN_VALUE;
 
     /**
      * 
@@ -76,26 +71,24 @@ public class BoardUtils {
      * 
      * @param boardData
      * @param initial
-     * @return [hash, -, highest, lowest, holes, -, -, heights]
+     * @return [hash, occupied, highest, lowest, holes]
      */
-    public static final int[] calcDetailedBoardStats(final boolean[] boardData,
-            int[] initial) {
+    public static final int[] calcDetailedBoardStats(final boolean[] boardData, int[] initial) {
         if (boardData == null) {
             return EMPTY_DETAILED_DATA_STATS;
         }
-        int[] stats = boardDetailedStats.get();
+        final int[] stats = boardDetailedStats.get();
         int highest = Integer.MIN_VALUE;
         int lowest = Integer.MAX_VALUE;
         int occupied = 0;
         int holes = 0;
         int hash = HASH_SEED;
-        int[] above;
+        final int[] above;
         if (initial == null) {
             above = new int[PiecesWidth];
         } else {
             above = initial;
         }
-        int heights = 0;
         int h;
         boolean found;
         boolean b;
@@ -115,12 +108,11 @@ public class BoardUtils {
                     } else if (h < lowest) {
                         lowest = h;
                     }
-                    heights += h;
                     if (above[x] == 0) {
                         above[x] = h;
 
                     }
-                } else if (found) {
+                } else if (!b && found) {
                     holes++;
                 }
             }
@@ -136,9 +128,6 @@ public class BoardUtils {
         stats[2] = highest;
         stats[3] = lowest;
         stats[4] = holes;
-        stats[5] = 0;
-        stats[6] = 0;
-        stats[7] = heights;
         return stats;
     }
 
@@ -146,8 +135,7 @@ public class BoardUtils {
         return y * PiecesWidth + x;
     }
 
-    public static final boolean getBoardValue(final boolean[] data,
-            final int x, final int y) {
+    public static final boolean getBoardValue(final boolean[] data, final int x, final int y) {
         if (x < 0 || y < 0 || x >= PiecesWidth || y >= PiecesHeight) {
             return false;
         } else {
@@ -155,10 +143,8 @@ public class BoardUtils {
         }
     }
 
-    public static final boolean getBlockValue(final boolean[] blockArray,
-            final int x, final int y) {
-        if (x < 0 || y < 0 || x >= QQTetris.BlockDrawSize
-                || y >= QQTetris.BlockDrawSize) {
+    public static final boolean getBlockValue(final boolean[] blockArray, final int x, final int y) {
+        if (x < 0 || y < 0 || x >= QQTetris.BlockDrawSize || y >= QQTetris.BlockDrawSize) {
             return false;
         } else {
             return blockArray[getBlockPos(x, y)];
@@ -169,18 +155,14 @@ public class BoardUtils {
         return y * BlockDrawSize + x;
     }
 
-    public static final Tetromino getAndCleanNextType(final boolean[] data) {
-        Tetromino result = null;
+    public static final void getAndCleanNextType(final boolean[] board, final Tetromino tetromino) {
         int i, j, hash, occupied;
         boolean valid;
-        boolean[] hashTest = hashTestBlock.get();
-        FOUND_TETROMINO:
-        for (int x = -2, y = -1; y < PiecesHeight
-                                     - BlockDrawSize;) {
+        FOUND_TETROMINO: for (int x = -2, y = -1; y < PiecesHeight - BlockDrawSize;) {
             valid = true;
             // last line of block is empty
             for (i = 0; i < BlockDrawSize; i++) {
-                if (getBoardValue(data, i, y + BlockDrawSize)) {
+                if (getBoardValue(board, i, y + BlockDrawSize)) {
                     valid = false;
                     break;
                 }
@@ -189,7 +171,7 @@ public class BoardUtils {
                 // line under block is empty (I)
                 valid = true;
                 for (i = 0; i < BlockDrawSize; i++) {
-                    if (getBoardValue(data, i, y + BlockDrawSize - 1)) {
+                    if (getBoardValue(board, i, y + BlockDrawSize - 1)) {
                         valid = false;
                         break;
                     }
@@ -198,29 +180,27 @@ public class BoardUtils {
             if (valid) {
                 i = 0;
                 j = 0;
-                for (int k = 0; k < hashTest.length; k++) {
-                    hashTest[k] = getBoardValue(data, x + i, y + j);
+                for (int k = 0; k < hashTestBlock.length; k++) {
+                    hashTestBlock[k] = getBoardValue(board, x + i, y + j);
                     if (++i >= BlockDrawSize) {
                         i = 0;
                         j++;
                     }
                 }
-                int[] stats = calcBlockStats(hashTest);
+                final int[] stats = calcBlockStats(hashTestBlock);
                 hash = stats[0];
                 occupied = stats[1];
                 if (occupied == 4) {
-                    int idx = Arrays.binarySearch(
-                            BlockType.BLOCK_ROTATION_HASHCODES, hash);
+                    int idx = Arrays.binarySearch(BlockType.BLOCK_ROTATION_HASHCODES, hash);
                     // System.out.println("x: " + x + ", y: " + y + ", h: " +
                     // hash + ", idx: " + idx);
                     // printBoard(hashTest, BlockDrawSize, BlockDrawSize);
-                    if (idx >= 0 && (x <= 0 || !getBoardValue(data, x - 1, y)) && (y <= 0 || !getBoardValue(data, x, y-1))) {
-                        result = new Tetromino(
-                                BlockType.BLOCK_HASHCODE_TYPE_REFS[idx],
-                                BlockType.BLOCK_HASHCODE_ROTATION_REFS[idx], x,
-                                y);
+                    if (idx >= 0 && (x <= 0 || !getBoardValue(board, x - 1, y))
+                            && (y <= 0 || !getBoardValue(board, x, y - 1))) {
+                        tetromino.set(BlockType.BLOCK_HASHCODE_TYPE_REFS[idx],
+                                BlockType.BLOCK_HASHCODE_ROTATION_REFS[idx], x, y);
                         if (DEBUG) {
-                            System.out.println("Found: " + result);
+                            System.out.println("Found: " + tetromino);
                             // printBlock(result.getRotation().form);
                         }
                         break FOUND_TETROMINO;
@@ -234,15 +214,15 @@ public class BoardUtils {
                 x++;
             }
         }
-        if (result != null) {
+        if (tetromino.isValid()) {
             // erase current block from board
             i = 0;
             j = 0;
-            int x = result.x, y = result.y;
-            for (int k = 0; k < hashTest.length; k++) {
-                if (x + i >= 0 && y + j >= 0 && x + i < PiecesWidth
-                        && y + j < PiecesHeight) {
-                    data[getBoardPos(x + i, y + j)] = false;
+            final int x = tetromino.x;
+            final int y = tetromino.y;
+            for (int k = 0; k < hashTestBlock.length; k++) {
+                if (x + i >= 0 && y + j >= 0 && x + i < PiecesWidth && y + j < PiecesHeight) {
+                    board[getBoardPos(x + i, y + j)] = false;
                 }
                 if (++i >= BlockDrawSize) {
                     i = 0;
@@ -250,7 +230,6 @@ public class BoardUtils {
                 }
             }
         }
-        return result;
     }
 
     public static final int clearFullLines(final boolean[] boardData) {
@@ -262,8 +241,8 @@ public class BoardUtils {
                 lineOccupied++;
             }
             if (lineOccupied == PiecesWidth) {
-                System.arraycopy(boardData, clears * PiecesWidth, boardData,
-                        (clears + 1) * PiecesWidth, getBoardPos(x, y - clears));
+                System.arraycopy(boardData, clears * PiecesWidth, boardData, (clears + 1) * PiecesWidth,
+                        getBoardPos(x, y - clears));
                 y++;
                 clears++;
             }
@@ -288,8 +267,8 @@ public class BoardUtils {
                 lineOccupied++;
             }
             if (lineOccupied == PiecesWidth) {
-                System.arraycopy(boardData, clears * PiecesWidth, boardData,
-                        (clears + 1) * PiecesWidth, getBoardPos(x, y - clears));
+                System.arraycopy(boardData, clears * PiecesWidth, boardData, (clears + 1) * PiecesWidth,
+                        getBoardPos(x, y - clears));
                 y++;
                 clears++;
             }
@@ -319,8 +298,7 @@ public class BoardUtils {
         return result;
     }
 
-    public static final int[] calcBlockVerticalsum(final boolean[] blockArray,
-            final int left, final int right) {
+    public static final int[] calcBlockVerticalsum(final boolean[] blockArray, final int left, final int right) {
         int[] result = new int[QQTetris.BlockDrawSize - left - right];
         int y, h;
         for (int x = left; x < QQTetris.BlockDrawSize - right; x++) {
@@ -335,8 +313,7 @@ public class BoardUtils {
         return result;
     }
 
-    public static final int[] calcBlockTops(final boolean[] blockArray,
-            final int left, final int right) {
+    public static final int[] calcBlockTops(final boolean[] blockArray, final int left, final int right) {
         int[] result = new int[QQTetris.BlockDrawSize - left - right];
         int y;
         for (int x = left; x < QQTetris.BlockDrawSize - right; x++) {
@@ -350,8 +327,7 @@ public class BoardUtils {
         return result;
     }
 
-    public static final int[] calcVerticalFree(final int[] tops,
-            final int[] bottoms) {
+    public static final int[] calcVerticalFree(final int[] tops, final int[] bottoms) {
         int min = Integer.MAX_VALUE, max = Integer.MIN_VALUE;
         for (int i : bottoms) {
             if (i > max) {
@@ -366,8 +342,7 @@ public class BoardUtils {
         return new int[] { min, QQTetris.BlockDrawSize - max - 1 };
     }
 
-    public static final int[] calcBlockBottoms(final boolean[] blockArray,
-            final int left, final int right) {
+    public static final int[] calcBlockBottoms(final boolean[] blockArray, final int left, final int right) {
         int[] result = new int[QQTetris.BlockDrawSize - left - right];
         int y;
         for (int x = left; x < QQTetris.BlockDrawSize - right; x++) {
@@ -406,8 +381,7 @@ public class BoardUtils {
         return new int[] { min, QQTetris.BlockDrawSize - max - 1 };
     }
 
-    public static final double mergeAndCalcScore(final boolean[] board,
-            final TransformationResult[] prevResults,
+    public static final double mergeAndCalcScore(final boolean[] board, final TransformationResult[] prevResults,
             final StrategyType strategy, double[] strategyAttrs) {
         // copy board
         int[] boardCopy = booleansToInts(board);
@@ -426,12 +400,11 @@ public class BoardUtils {
         return boardCopy;
     }
 
-    public static final void mergeMoveResult(final boolean[] board,
-            final Tetromino t, final MoveResult move) {
+    public static final void mergeMoveResult(final boolean[] board, final Tetromino t, final MoveResult move) {
         BlockRotation br = t.block.rotations[t.rotationIdx + move.rotationDelta];
         int x;
         if (move.moveDelta == MoveResult.CLEVER_MOVE) {
-            x = ((CleverMoveResult) move).getTargetX();
+            x = move.getTargetX();
         } else {
             x = t.x + move.moveDelta;
         }
@@ -439,16 +412,14 @@ public class BoardUtils {
         for (int j = y + br.freeTop; j < y + br.freeTop + br.height; j++) {
             for (int i = x + br.freeLeft; i < x + br.freeLeft + br.width; i++) {
                 boolean blockPiece = getBlockValue(br.form, i - x, j - y);
-                if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth
-                        && j < PiecesHeight) {
+                if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth && j < PiecesHeight) {
                     board[getBoardPos(i, j)] = true;
                 }
             }
         }
     }
 
-    public final static void mergeResults(final boolean[] boardCopy,
-            final TransformationResult[] prevResults) {
+    public final static void mergeResults(final boolean[] boardCopy, final TransformationResult[] prevResults) {
         BlockRotation br;
         for (TransformationResult tr : prevResults) {
             int rotationIdx = tr.getRotationIdx();
@@ -459,12 +430,9 @@ public class BoardUtils {
                 int x = tr.getX();
                 int y = tr.getY();
                 for (int j = y + br.freeTop; j < y + br.freeTop + br.height; j++) {
-                    for (int i = x + br.freeLeft; i < x + br.freeLeft
-                                                      + br.width; i++) {
-                        boolean blockPiece = getBlockValue(br.form, i - x, j
-                                                                           - y);
-                        if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth
-                                && j < PiecesHeight) {
+                    for (int i = x + br.freeLeft; i < x + br.freeLeft + br.width; i++) {
+                        boolean blockPiece = getBlockValue(br.form, i - x, j - y);
+                        if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth && j < PiecesHeight) {
                             boardCopy[getBoardPos(i, j)] = true;
                         }
                     }
@@ -473,8 +441,7 @@ public class BoardUtils {
         }
     }
 
-    public final static void mergeResults(final int[] boardCopy,
-            final TransformationResult[] prevResults) {
+    public final static void mergeResults(final int[] boardCopy, final TransformationResult[] prevResults) {
         BlockRotation br;
         for (TransformationResult tr : prevResults) {
             br = tr.getBlock().rotations[tr.getRotationIdx()];
@@ -483,8 +450,7 @@ public class BoardUtils {
             for (int j = y + br.freeTop; j < y + br.freeTop + br.height; j++) {
                 for (int i = x + br.freeLeft; i < x + br.freeLeft + br.width; i++) {
                     boolean blockPiece = getBlockValue(br.form, i - x, j - y);
-                    if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth
-                            && j < PiecesHeight) {
+                    if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth && j < PiecesHeight) {
                         boardCopy[getBoardPos(i, j)] = 2;
                     }
                 }
@@ -500,14 +466,12 @@ public class BoardUtils {
         return result;
     }
 
-    public final static int[] calcPiecesHeight(final int[] piecesHeights,
-            final TransformationResult[] prevResults) {
+    public final static int[] calcPiecesHeight(final int[] piecesHeights, final TransformationResult[] prevResults) {
         int i, h;
         int x, y;
         int l;
         BlockRotation rt;
-        int[] testPiecesHeight = Arrays.copyOf(piecesHeights,
-                QQTetris.PiecesWidth);
+        int[] testPiecesHeight = Arrays.copyOf(piecesHeights, QQTetris.PiecesWidth);
         for (TransformationResult tr : prevResults) {
             if (tr != null) {
                 rt = tr.block.rotations[tr.getRotationIdx()];
@@ -523,12 +487,11 @@ public class BoardUtils {
         return testPiecesHeight;
     }
 
-    public final static int[] calcPiecesHeight(final int[] piecesHeights,
-            final BlockRotation rt, final int x, final int y) {
+    public final static int[] calcPiecesHeight(final int[] piecesHeights, final BlockRotation rt, final int x,
+            final int y) {
         int i, h;
         int l;
-        int[] testPiecesHeight = Arrays.copyOf(piecesHeights,
-                QQTetris.PiecesWidth);
+        int[] testPiecesHeight = Arrays.copyOf(piecesHeights, QQTetris.PiecesWidth);
         int realX = x + rt.freeLeft;
         int realY = QQTetris.PiecesHeight - y;
         l = realX + rt.width;
@@ -539,8 +502,7 @@ public class BoardUtils {
         return testPiecesHeight;
     }
 
-    public static final int getBoardValue(final int[] data, final int x,
-            final int y) {
+    public static final int getBoardValue(final int[] data, final int x, final int y) {
         if (x < 0 || y < 0 || x >= PiecesWidth || y >= PiecesHeight) {
             return 0;
         } else {
@@ -548,16 +510,14 @@ public class BoardUtils {
         }
     }
 
-    public static boolean fitFormInner(boolean[] board, BlockRotation br,
-            int xTouch, int yTouch) {
+    public static boolean fitFormInner(boolean[] board, BlockRotation br, int xTouch, int yTouch) {
         // int wl = Math.min(QQTetris.PiecesWidth, x + br.freeLeft + br.width);
         // int hl = Math.min(QQTetris.PiecesHeight, y + br.freeTop + br.height);
         final int wl = xTouch + br.freeLeft + br.width;
         final int hl = yTouch + br.freeTop + br.height;
         for (int i = xTouch + br.freeLeft, x = br.freeLeft; i < wl; i++, x++) {
             for (int j = yTouch + br.freeTop, y = br.freeTop; j < hl; j++, y++) {
-                if (BoardUtils.getBlockValue(br.form, x, y)
-                        && BoardUtils.getBoardValue(board, i, j)) {
+                if (BoardUtils.getBlockValue(br.form, x, y) && BoardUtils.getBoardValue(board, i, j)) {
                     return false;
                 }
             }
@@ -565,14 +525,12 @@ public class BoardUtils {
         return true;
     }
 
-    public static int findLeftFree(boolean[] board, BlockRotation br, int xTry,
-            int yTry, int targetY) {
+    public static int findLeftFree(boolean[] board, BlockRotation br, int xTry, int yTry, int targetY) {
         // try leftwards than upwards
         final int limit = -br.freeLeft;
         int x = xTry, y = yTry;
 
-        FOUND:
-        while (x-- > limit) {
+        FOUND: while (x-- > limit) {
             if (BoardUtils.fitFormInner(board, br, x, y)) {
                 // try upwards
                 for (y = yTry - 1; y >= targetY; y--) {
@@ -588,14 +546,12 @@ public class BoardUtils {
         return NOT_FOUND;
     }
 
-    public static int findRightFree(boolean[] board, BlockRotation br,
-            int xTry, int yTry, int targetY) {
+    public static int findRightFree(boolean[] board, BlockRotation br, int xTry, int yTry, int targetY) {
         // try rightwards than upwards
         final int limit = QQTetris.PiecesWidth - br.freeLeft - br.width;
         int x = xTry, y = yTry;
 
-        FOUND:
-        while (x++ < limit) {
+        FOUND: while (x++ < limit) {
             if (BoardUtils.fitFormInner(board, br, x, y)) {
                 // try upwards
                 for (y = yTry - 1; y >= targetY; y--) {
@@ -611,8 +567,7 @@ public class BoardUtils {
         return NOT_FOUND;
     }
 
-    public static boolean isVerticalFree(boolean[] board, BlockRotation br,
-            int xTry, int yTry, int targetY) {
+    public static boolean isVerticalFree(boolean[] board, BlockRotation br, int xTry, int yTry, int targetY) {
         final int wl = xTry + br.width + br.freeLeft;
         final int ws = xTry + br.freeLeft;
         for (int y = yTry - 1 + br.freeTop; y >= targetY; y--) {
@@ -639,6 +594,18 @@ public class BoardUtils {
                 }
             }
         }
+    }
+
+    public static final boolean isSameBoard(final boolean[] boardArray1, final boolean[] boardArray2) {
+        int y;
+        for (y = QQTetris.PiecesHeight - 2; y < QQTetris.PiecesHeight; y++) {
+            for (int x = 0; x < QQTetris.PiecesWidth; x++) {
+                if (BoardUtils.getBoardValue(boardArray1, x, y) != BoardUtils.getBoardValue(boardArray2, x, y)) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
 }

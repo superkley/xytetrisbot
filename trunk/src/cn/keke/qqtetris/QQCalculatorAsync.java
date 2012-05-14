@@ -25,7 +25,6 @@ public class QQCalculatorAsync extends MoveCalculator {
     }
 
     public MoveResult findBestMove(QQStats stats, StrategyType strategy, double[] strategyAttrs) {
-        boolean[] board = stats.boardData;
         Tetromino t = stats.tetromino;
         BlockType[] nextBlocks = initializeNextBlocks(stats.nextBlocks, strategy, stats);
         if (QQTetris.ANALYZE) {
@@ -35,15 +34,15 @@ public class QQCalculatorAsync extends MoveCalculator {
         for (int i = 0; i < predictedResults.length; i++) {
             predictedResults[i] = new TransformationResult(t.block);
         }
-        int[] piecesHeight = BoardUtils.calcBoardHeight(board);
+        int[] piecesHeight = BoardUtils.calcBoardHeight(QQTetris.BOARD_DATA);
         // System.out.println("orgin heights: " + Arrays.toString(piecesHeight));
         AtomicInteger taskCounter = new AtomicInteger(0);
-        TransformationTask task = new TransformationTask(predictedResults, board, piecesHeight, nextBlocks, new ArrayList<TransformationResult[]>(),
+        TransformationTask task = new TransformationTask(predictedResults, QQTetris.BOARD_DATA, piecesHeight, nextBlocks, new ArrayList<TransformationResult[]>(),
                 SEMAPHORE, CALC_EXECUTOR, strategy, strategyAttrs, taskCounter);
         CALC_EXECUTOR.execute(task);
         boolean success = false;
         try {
-            success = SEMAPHORE.tryAcquire(QQThread.SLEEP_MAX, TimeUnit.MILLISECONDS);
+            success = SEMAPHORE.tryAcquire(QQScreenCaptureThread.SLEEP_MAX, TimeUnit.MILLISECONDS);
             if (!success) {
                 this.timeouts++;
                 System.err.println("Computer too slow for calculation!");
