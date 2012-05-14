@@ -15,8 +15,8 @@ import static cn.keke.qqtetris.QQTetris.Future2X;
 import static cn.keke.qqtetris.QQTetris.Future2Y;
 import static cn.keke.qqtetris.QQTetris.MyCoordX;
 import static cn.keke.qqtetris.QQTetris.MyCoordY;
-import static cn.keke.qqtetris.QQTetris.MyHeight;
-import static cn.keke.qqtetris.QQTetris.MyWidth;
+import static cn.keke.qqtetris.QQTetris.MyAreaHeight;
+import static cn.keke.qqtetris.QQTetris.MyAreaWidth;
 import static cn.keke.qqtetris.QQTetris.PieceSize;
 import static cn.keke.qqtetris.QQTetris.PiecesHeight;
 import static cn.keke.qqtetris.QQTetris.PiecesWidth;
@@ -29,6 +29,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
+import java.awt.HeadlessException;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -37,6 +38,8 @@ import java.awt.Toolkit;
 import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.awt.peer.RobotPeer;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 
 import cn.keke.qqtetris.exceptions.BoardNotReadyException;
@@ -47,48 +50,35 @@ import cn.keke.qqtetris.exceptions.UnknownBoardStateException;
 import sun.awt.ComponentFactory;
 
 public class QQRobot {
-    private static final StopWatch     STOPPER            = new StopWatch("robot");
-    private static final boolean       IGNORE_INVALID_BOARD_COLOR;
-    private static final boolean       IGNORE_INVALID_FUTURE_1;
-    private static final boolean       IGNORE_INVALID_FUTURE_2;
-    public static final int            ROBOT_DELAY_MILLIS = 15;
-    private static final int           DEVICES;
-    private static final Rectangle[]   RECTANGLES;
-    private static final RobotPeer[]   ROBOTS;
-    public static RobotPeer            CURRENT_ROBOT;
-    private static Robot               robot;
-    private static Rectangle           RECT_SCREEN;
-    private static Rectangle           RECT_MY            = new Rectangle(QQTetris.MyCoordX, QQTetris.MyCoordY, QQTetris.MyWidth, QQTetris.MyHeight);
-    private static Rectangle           RECT_FUTURE1       = new Rectangle(QQTetris.Future1X, QQTetris.Future1Y, QQTetris.Future1Width, QQTetris.Future1Height);
-    private static Rectangle           RECT_FUTURE2       = new Rectangle(QQTetris.Future2X, QQTetris.Future2Y, QQTetris.Future2Width, QQTetris.Future2Height);
-    private static Rectangle           RECT_BOARD         = new Rectangle(QQTetris.BoardCoordX, QQTetris.BoardCoordY, QQTetris.BoardWidth, QQTetris.BoardHeight);
-    private static boolean[]           BOARD_DATA         = new boolean[PiecesHeight * PiecesWidth];
-    public static final KeyboardThread keyboardThread     = new KeyboardThread();
+    private static final StopWatch STOPPER = new StopWatch("robot");
+    private static final boolean IGNORE_INVALID_BOARD_COLOR;
+    private static final boolean IGNORE_INVALID_FUTURE_1;
+    private static final boolean IGNORE_INVALID_FUTURE_2;
+    public static final int ROBOT_DELAY_MILLIS = 10;
+    private static RobotPeer ROBOT;
+    private static Method ROBOT_getRGBPixels;
+    public final static Rectangle RECT_SCREEN;
+    public final static Rectangle RECT_MY = new Rectangle(QQTetris.MyCoordX, QQTetris.MyCoordY, QQTetris.MyAreaWidth,
+            QQTetris.MyAreaHeight);
+    public static Rectangle RECT_FUTURE1 = new Rectangle(QQTetris.Future1X, QQTetris.Future1Y, QQTetris.Future1Width,
+            QQTetris.Future1Height);
+    public static Rectangle RECT_FUTURE2 = new Rectangle(QQTetris.Future2X, QQTetris.Future2Y, QQTetris.Future2Width,
+            QQTetris.Future2Height);
+    public static Rectangle RECT_BOARD = new Rectangle(QQTetris.BoardCoordX, QQTetris.BoardCoordY, QQTetris.BoardWidth,
+            QQTetris.BoardHeight);
     static {
         try {
-            robot = new Robot();
-        } catch (AWTException e1) {
-            e1.printStackTrace();
+            ROBOT = ((ComponentFactory) Toolkit.getDefaultToolkit()).createRobot(null, null);
+            final Class[] params = new Class[] { int.class, int.class, int.class, int.class, int[].class };
+            ROBOT_getRGBPixels = ROBOT.getClass().getDeclaredMethod("getRGBPixels", params);
+            ROBOT_getRGBPixels.setAccessible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new InstantiationError(e.toString());
         }
+
         Dimension screenDim = Toolkit.getDefaultToolkit().getScreenSize();
         RECT_SCREEN = new Rectangle(screenDim.width, screenDim.height);
-        GraphicsDevice[] devices = GraphicsEnvironment
-                .getLocalGraphicsEnvironment().getScreenDevices();
-        DEVICES = devices.length;
-        ROBOTS = new RobotPeer[DEVICES];
-        RECTANGLES = new Rectangle[DEVICES];
-        for (int i = 0; i < DEVICES; i++) {
-            try {
-                GraphicsDevice graphicsDevice = devices[i];
-                ROBOTS[i] = ((ComponentFactory) Toolkit.getDefaultToolkit())
-                        .createRobot(new Robot(graphicsDevice), graphicsDevice);
-                RECTANGLES[i] = graphicsDevice.getDefaultConfiguration()
-                        .getBounds();
-                // System.out.println(i + ") bounds: " + RECTANGLES[i]);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
 
         if (DEBUG) {
             IGNORE_INVALID_BOARD_COLOR = false;
@@ -99,27 +89,24 @@ public class QQRobot {
             IGNORE_INVALID_FUTURE_1 = true;
             IGNORE_INVALID_FUTURE_2 = true;
         }
-
-        keyboardThread.start();
     }
 
     public static void click(int x, int y) throws InterruptedException {
         if (!QQTetris.ANALYZE) {
             Point oldLocation = MouseInfo.getPointerInfo().getLocation();
-            CURRENT_ROBOT.mouseMove(RECT_SCREEN.x + x, RECT_SCREEN.y + y);
-            CURRENT_ROBOT.mousePress(InputEvent.BUTTON1_MASK);
+            ROBOT.mouseMove(RECT_SCREEN.x + x, RECT_SCREEN.y + y);
+            ROBOT.mousePress(InputEvent.BUTTON1_MASK);
             Thread.sleep(ROBOT_DELAY_MILLIS);
-            CURRENT_ROBOT.mouseRelease(InputEvent.BUTTON1_MASK);
+            ROBOT.mouseRelease(InputEvent.BUTTON1_MASK);
             Thread.sleep(ROBOT_DELAY_MILLIS);
-            CURRENT_ROBOT.mouseMove(oldLocation.x, oldLocation.y);
+            ROBOT.mouseMove(oldLocation.x, oldLocation.y);
         }
     }
 
     private final static boolean findSimilar(final int[] a, final int r, final int g, final int b) {
         for (int i : a) {
-            if (Math.abs(((i >> 16) & 0x000000FF) - r) < 16 &&
-                    Math.abs(((i >> 8) & 0x000000FF) - g) < 16 &&
-                    Math.abs(((i) & 0x000000FF) - b) < 18) {
+            if (Math.abs(((i >> 16) & 0x000000FF) - r) < 16 && Math.abs(((i >> 8) & 0x000000FF) - g) < 16
+                    && Math.abs(((i) & 0x000000FF) - b) < 18) {
                 return true;
             }
         }
@@ -127,9 +114,9 @@ public class QQRobot {
     }
 
     public final static boolean isSimilar(final int a, final int key) {
-        if (Math.abs(((a >> 16) & 0x000000FF) - ((key >> 16) & 0x000000FF)) <= 8 &&
-               Math.abs(((a >> 8) & 0x000000FF) - ((key >> 8) & 0x000000FF)) <= 8 &&
-               Math.abs(((a) & 0x000000FF) - ((key) & 0x000000FF)) <= 10) {
+        if (Math.abs(((a >> 16) & 0x000000FF) - ((key >> 16) & 0x000000FF)) <= 8
+                && Math.abs(((a >> 8) & 0x000000FF) - ((key >> 8) & 0x000000FF)) <= 8
+                && Math.abs(((a) & 0x000000FF) - ((key) & 0x000000FF)) <= 10) {
             return true;
         }
         return false;
@@ -148,7 +135,7 @@ public class QQRobot {
     }
 
     public static BufferedImage getMyFrame(BufferedImage qqImage) {
-        return qqImage.getSubimage(MyCoordX, MyCoordY, MyWidth, MyHeight);
+        return qqImage.getSubimage(MyCoordX, MyCoordY, MyAreaWidth, MyAreaHeight);
     }
 
     public static BufferedImage getQQFrame() {
@@ -168,35 +155,37 @@ public class QQRobot {
     }
 
     public static BufferedImage getScreen(int x, int y, int w, int h) {
-        return robot.createScreenCapture(new Rectangle(x, y, w, h));
+        try {
+            return new Robot().createScreenCapture(new Rectangle(x, y, w, h));
+        } catch (AWTException e) {
+            return null;
+        }
     }
 
-    public static void findQQTetris() {
-        boolean foundQQ = false;
-        for (int i = 0; i < DEVICES; i++) {
-            RobotPeer rp = ROBOTS[i];
-            if (rp != null) {
-                Rectangle bounds = RECTANGLES[i];
-                int[] s = rp.getRGBPixels(bounds);
-                if (findQQTetris(s, bounds)) {
-                    foundQQ = true;
-                    CURRENT_ROBOT = rp;
-                    break;
-                }
+    private static int[] BUFFER_findQQTetris = new int[RECT_SCREEN.width * RECT_SCREEN.height];
+
+    private static void findQQTetris() {
+        try {
+            ROBOT_getRGBPixels.invoke(ROBOT, RECT_SCREEN.x, RECT_SCREEN.y, RECT_SCREEN.width, RECT_SCREEN.height,
+                    BUFFER_findQQTetris);
+            if (!findQQTetris(BUFFER_findQQTetris, RECT_SCREEN)) {
+                throw new MissingTetrisWindowException("QQTetris is not running!");
             }
-        }
-        if (!foundQQ) {
-            throw new MissingTetrisWindowException("QQTetris is not running!");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
     private static boolean findQQTetris(int[] s, Rectangle bounds) {
         for (int y = QQHeight / 2; y < bounds.height; y += QQHeight - 10) {
             for (int x = 0; x < bounds.width - QQWidth; x++) {
-            	// System.out.println("x,y: "+x+","+y+", expected,real: 0xFF578143,"+Integer.toHexString(getValue(s, bounds, x, y)));
-                if (isSimilar(0xFF578143, getValue(s, bounds, x, y)) && isSimilar(0xFF578143, getValue(s, bounds, x, y + 1))
-                    && isSimilar(0xFF578143, getValue(s, bounds, x, y - 1)) && isSimilar(0xFF578143, getValue(s, bounds, x, y + 2))
-                    && isSimilar(0xFF578143, getValue(s, bounds, x, y - 2))) {
+                // System.out.println("x,y: "+x+","+y+", expected,real: 0xFF578143,"+Integer.toHexString(getValue(s,
+                // bounds, x, y)));
+                if (isSimilar(0xFF578143, getValue(s, bounds, x, y))
+                        && isSimilar(0xFF578143, getValue(s, bounds, x, y + 1))
+                        && isSimilar(0xFF578143, getValue(s, bounds, x, y - 1))
+                        && isSimilar(0xFF578143, getValue(s, bounds, x, y + 2))
+                        && isSimilar(0xFF578143, getValue(s, bounds, x, y - 2))) {
                     boolean foundCorner = false;
                     for (int v = y - 3; v >= 0; v--) {
                         if (isSimilar(0xFF83A373, getValue(s, bounds, x, v))) {
@@ -211,12 +200,11 @@ public class QQRobot {
                         if (x + QQWidth > bounds.width || y + QQHeight > bounds.height) {
                             throw new MissingTetrisWindowException("QQTetris cannot fully viewed!");
                         }
-                        RECT_SCREEN.setBounds(bounds);
                         RECT_MY.setLocation(QQTetris.MyCoordX, QQTetris.MyCoordY);
                         RECT_MY.translate(x, y);
-                        QQCoord.x=x;
-                        QQCoord.y=y;
-                        // System.out.println("找到QQTetris视窗: " + x + " / " + y);
+                        QQCoord.x = x;
+                        QQCoord.y = y;
+                        System.out.println("找到QQTetris视窗: " + x + " / " + y);
                         return true;
                     }
                 }
@@ -233,7 +221,7 @@ public class QQRobot {
         }
     }
 
-    private static final int getSubValue(final int[] array, final Rectangle rect, final int i, final int j) {
+    private static final int getMyValue(final int[] array, final Rectangle rect, final int i, final int j) {
         return array[rect.x + i + (rect.y + j) * RECT_MY.width];
     }
 
@@ -249,13 +237,13 @@ public class QQRobot {
 
     private static final float[] HSV = new float[3];
 
-    private static boolean isBlockColor(int c) {
-        int r = (c >> 16) & 0x000000FF;
-        int g = (c >> 8) & 0x000000FF;
-        int b = (c) & 0x000000FF;
+    private static final boolean isBlockColor(final int c) {
+        final int r = (c >> 16) & 0x000000FF;
+        final int g = (c >> 8) & 0x000000FF;
+        final int b = (c) & 0x000000FF;
 
         Color.RGBtoHSB(r, g, b, HSV);
-        float hue = HSV[0];
+        final float hue = HSV[0];
         if (HSV[1] < 0.06f) {
             if (r < 10 && g < 10) {
                 // auto generated pieces
@@ -267,7 +255,7 @@ public class QQRobot {
             // points animation
             // System.out.println("points");
             return false;
-        } else if (Math.abs(hue - 0.24f) < .0000001 ) {
+        } else if (Math.abs(hue - 0.24f) < .0000001f) {
             throw new BoardNotReadyException("Found explosion artifacts!");
         }
         if (findSimilar(BlockType.BLOCK_BOTTOM_COLORS, r, g, b)) {
@@ -281,32 +269,18 @@ public class QQRobot {
         return false;
     }
 
-    public static QQStats makeStats(boolean autoBlue) {
-        if (QQTetris.ANALYZE) {
-            STOPPER.start();
-        }
-        int[] my = CURRENT_ROBOT.getRGBPixels(RECT_MY);
-        QQStats stats = makeStats(my);
-        if (stats.lowest > 4 && autoBlue && stats.isValid()) {
-            doAutoBlue(my);
-        }
-        if (QQTetris.ANALYZE) {
-            STOPPER.printTime("stats");
-        }
-        return stats;
-    }
+    private static int[] BUFFER_makeBoardStats = new int[RECT_MY.width * RECT_MY.height];
 
-    private static void doAutoBlue(int[] my) {
-        int c;
-        boolean[] blues = new boolean[QQTetris.PiecesWidth];
+    private static final boolean[] BUFFER_doAutoBlue = new boolean[QQTetris.PiecesWidth];
+
+    public static final void doAutoBlue() {
         int bluesCounter = 0;
-        int r, b;
-        for (int x = QQTetris.BoardCoordX + QQTetris.PieceSize / 2, i = 0; x < QQTetris.MyWidth; x += QQTetris.PieceSize, i++) {
-            c = getValue(my, RECT_MY, x, QQTetris.MyHeight - 1);
-            r = (c >> 16) & 0x000000FF;
-            b = (c) & 0x000000FF;
+        for (int x = QQTetris.BoardCoordX + QQTetris.PieceSize / 2, i = 0; x < QQTetris.MyAreaWidth; x += QQTetris.PieceSize, i++) {
+            final int c = getValue(BUFFER_makeBoardStats, RECT_MY, x, QQTetris.MyAreaHeight - 1);
+            final int r = (c >> 16) & 0x000000FF;
+            final int b = (c) & 0x000000FF;
             if (b > 150 && r < 180) {
-                blues[i] = true;
+                BUFFER_doAutoBlue[i] = true;
                 // System.out.println("blue");
                 bluesCounter++;
             } else if (b == 53) {
@@ -320,71 +294,24 @@ public class QQRobot {
             // arrow down: 0xFFDB008B
         }
         if (bluesCounter > 0) {
-            ArrayList<MoveType> moves = new ArrayList<MoveType>(QQTetris.PiecesWidth);
-            for (boolean blue : blues) {
+            for (boolean blue : BUFFER_doAutoBlue) {
                 if (blue) {
-                    moves.add(MoveType.PERSON_ME);
+                    QQTetris.press(MoveType.PERSON_ME);
                     if (--bluesCounter == 0) {
                         break;
                     }
                 } else {
-                    moves.add(MoveType.SKIP_ITEM);
+                    QQTetris.press(MoveType.SKIP_ITEM);
                 }
             }
-            try {
-                keyboardThread.putMoves(moves.toArray(new MoveType[moves.size()]));
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-   /**
-    * <pre>
-    * 1. make full screen shot
-    * 2. find left border color of frame
-    * 3. check if frame is correct
-    * 4. calculate board, next blocks positions
-    * 5. extract current block from board
-    * 6. calculate stats of current board
-    * </pre>
-    */
-    private static QQStats makeStats(int[] my) {
-        if (isSimilar(getValue(my, RECT_MY, 1, 1), 0xFF353535)) {
-            boolean[] data = readBoardData(my);
-
-            BlockType ft1 = readFutureBlock(my);
-            BlockType ft2 = readFuture2Block(my);
-            Tetromino t = BoardUtils.getAndCleanNextType(data);
-
-            if (QQTetris.DEBUG) {
-                QQDebug.debugScreen(data, t, ft1, ft2);
-            }
-
-            if (t == null) {
-                if (QQTetris.ANALYZE) {
-                    System.out.print(".");
-                }
-                return new QQStats(data, null, QQTetris.EMPTY_BLOCKTYPE_ARRAY);
-            } else if (ft1 == null) {
-                return new QQStats(data, t, new BlockType[] { t.block });
-            } else if (ft2 == null) {
-                return new QQStats(data, t, new BlockType[] { t.block, ft1 });
-            } else {
-                return new QQStats(data, t, new BlockType[] { t.block, ft1, ft2 });
-            }
-        } else {
-            throw new MissingTetrisWindowException("Tetris frame disappeared!");
+            QQTetris.dirty = true;
         }
     }
 
-    public static QQStats makeStats(BufferedImage img) {
-        return makeStats(img.getRGB(0, 0, img.getWidth(), img.getHeight(), null, 0, img.getWidth()));
-    }
-
-    public static void press(MoveType move, int sleep) throws InterruptedException {
-        CURRENT_ROBOT.keyPress(move.KEY);
+    private static void press(MoveType move, int sleep) throws InterruptedException {
+        ROBOT.keyPress(move.KEY);
         Thread.sleep(sleep);
-        CURRENT_ROBOT.keyRelease(move.KEY);
+        ROBOT.keyRelease(move.KEY);
         Thread.sleep(1);
         if (QQTetris.ANALYZE) {
             System.out.println("pressed: " + move);
@@ -392,30 +319,19 @@ public class QQRobot {
     }
 
     public static void press(MoveType move) throws InterruptedException {
-    	press(move, ROBOT_DELAY_MILLIS);
-    }
-    
-    public static final void putMoves(MoveType[] move) throws InterruptedException {
-        keyboardThread.putMoves(move);
+        press(move, ROBOT_DELAY_MILLIS);
     }
 
-    public static boolean[] readBoardData(BufferedImage img) {
-        return readBoardData(img.getRGB(0, 0, img.getWidth(), img.getHeight(), null, 0, img.getWidth()));
-    }
-
-    public static boolean[] readBoardData(int[] myData) {
-        boolean[] boardData = BOARD_DATA;
+    public static final void readBoardData(final int[] myData, final boolean[] board) {
         int x = 0;
         int y = 0;
-        int c;
         int i;
         while (x < PiecesWidth && y < PiecesHeight) {
-            c = getSubValue(myData, RECT_BOARD, x * PieceSize + 7, y * PieceSize + 15);
             i = BoardUtils.getBoardPos(x, y);
-            if (isBlockColor(c)) {
-                boardData[i] = true;
+            if (isBlockColor(getMyValue(myData, RECT_BOARD, x * PieceSize + 7, y * PieceSize + 15))) {
+                board[i] = true;
             } else {
-                boardData[i] = false;
+                board[i] = false;
             }
             x++;
             if (x >= PiecesWidth) {
@@ -423,7 +339,6 @@ public class QQRobot {
                 y++;
             }
         }
-        return boardData;
     }
 
     public static BlockType readFuture2Block(int[] myData) {
@@ -431,7 +346,7 @@ public class QQRobot {
         for (BlockType b : BlockType.values()) {
             found = true;
             for (Point p : b.idCoords) {
-                if (!isSimilar(getSubValue(myData, RECT_FUTURE2, p.x, p.y), 0xFF515151)) {
+                if (!isSimilar(getMyValue(myData, RECT_FUTURE2, p.x, p.y), 0xFF515151)) {
                     found = false;
                     break;
                 }
@@ -455,8 +370,8 @@ public class QQRobot {
         return readFuture2Block(img.getRGB(0, 0, img.getWidth(), img.getHeight(), null, 0, img.getWidth()));
     }
 
-    public static BlockType readFutureBlock(int[] myData) {
-        int c = getSubValue(myData, RECT_FUTURE1, BlockType.L.innerCoord.x, BlockType.L.innerCoord.y);
+    public static BlockType readFutureBlock(final int[] myData) {
+        final int c = getMyValue(myData, RECT_FUTURE1, BlockType.L.innerCoord.x, BlockType.L.innerCoord.y);
         if (isSimilar(c, BlockType.L.innerColor)) {
             return BlockType.L;
         } else if (isSimilar(c, BlockType.J.innerColor)) {
@@ -468,47 +383,138 @@ public class QQRobot {
         } else if (isSimilar(c, BlockType.Z.innerColor)) {
             return BlockType.Z;
         }
-        int c2 = getSubValue(myData, RECT_FUTURE1, BlockType.I.innerCoord.x, BlockType.I.innerCoord.y);
+        final int c2 = getMyValue(myData, RECT_FUTURE1, BlockType.I.innerCoord.x, BlockType.I.innerCoord.y);
         if (isSimilar(c2, BlockType.I.innerColor)) {
             return BlockType.I;
         } else if (isSimilar(c2, BlockType.O.innerColor)) {
             return BlockType.O;
         }
         if (!IGNORE_INVALID_FUTURE_1) {
-            throw new UnknownBlockTypeException("Future1: Unknown block! (42,35)=" + Integer.toHexString(c) + ", (35,26)="
-                                                + Integer.toHexString(c2));
-        } else {
-            if (DEBUG) {
-                System.err.println("Future1: Unknown block! (42,35)=" + Integer.toHexString(c) + ", (35,26)="
-                                   + Integer.toHexString(c2));
-            }
-            return null;
+            throw new UnknownBlockTypeException("Future1: Unknown block! (42,35)=" + Integer.toHexString(c)
+                    + ", (35,26)=" + Integer.toHexString(c2));
+        } else if (DEBUG) {
+            System.err.println("Future1: Unknown block! (42,35)=" + Integer.toHexString(c) + ", (35,26)="
+                    + Integer.toHexString(c2));
         }
+        return null;
     }
 
     public final static BlockType readFutureBlock(BufferedImage img) {
         return readFutureBlock(img.getRGB(0, 0, img.getWidth(), img.getHeight(), null, 0, img.getWidth()));
     }
 
-    public final static int findVertical(final BlockType t, final BlockRotation r, final int xTry, final int yTry) {
-        Point bottomPoint = new Point(RECT_MY.x, RECT_MY.y);
+    public static final void findWindowLocation(final int[] rgbScreen) {
+        QQCoord.setLocation(-1, -1);
+        if (!findQQTetris(rgbScreen, RECT_SCREEN)) {
+            throw new MissingTetrisWindowException("没有找到QQTetris窗口！");
+        }
+    }
+
+    public static final void checkBoardExists(final int[] rgbMySpace) {
+        if (!isSimilar(getValue(rgbMySpace, RECT_MY, 1, 1), 0xFF353535)) {
+            throw new MissingTetrisWindowException("没找到QQTetris窗口！");
+        }
+    }
+
+    public static final void findBoard(final int[] rgbMySpace, final boolean[] board) {
+        readBoardData(rgbMySpace, board);
+    }
+
+    public static final void findAndCleanBoard(final boolean[] board, final Tetromino tetromino) {
+        BoardUtils.getAndCleanNextType(board, tetromino);
+        BoardUtils.clearFullLines(board);
+    }
+
+    public static final void findFutures(final int[] rgbMySpace, final BlockType[] futures) {
+        futures[0] = readFutureBlock(rgbMySpace);
+        futures[1] = readFuture2Block(rgbMySpace);
+    }
+
+    public static final int findTetromino(final Tetromino tetromino) {
+        final BlockType t = tetromino.block;
+        final BlockRotation r = tetromino.rotation;
+        final int xTry = tetromino.x;
+        final int yTry = tetromino.y;
+
+        return findTetromino(t, r, xTry, yTry);
+    }
+
+    private static int findTetromino(final BlockType t, final BlockRotation r, final int xTry, final int yTry) {
+        final Point bottomPoint = new Point(RECT_MY.x, RECT_MY.y);
         bottomPoint.translate(RECT_BOARD.x, RECT_BOARD.y);
-        final int xCoord = (xTry + r.freeLeft) * PieceSize + 7;
-        int y = yTry;
+        final int xCoord = (xTry + r.freeLeft) * PieceSize + 7 + bottomPoint.x;
         final int bottomColor = t.bottomColor;
-        final int l = yTry + QQTetris.BlockDrawSize;
-        
+        // fallen-max = 3
+        final int l = yTry + 3;
+
+        int y = yTry;
         boolean found = false;
-        while (y++ < l) {
-            if (!isSimilar(bottomColor, CURRENT_ROBOT.getRGBPixel(xCoord, (y + r.freeTop + r.height) * PieceSize + 15))) {
-            	found = true;
+        while (y < l) {
+            if (!isSimilar(bottomColor,
+                    ROBOT.getRGBPixel(xCoord, (y + r.freeTop + r.height) * PieceSize + 15 + bottomPoint.y))) {
+                found = true;
                 break;
             }
+            y++;
         }
         if (found) {
-        	return y - 1;
+            // TODO check y-1
+            return y;
         } else {
-        	return -1; 
+            return -1;
         }
+    }
+
+    private static int findTetromino(final int[] rgbMySpace, final BlockType t, final BlockRotation r, final int xTry,
+            final int yTry) {
+        final int xCoord = (xTry + r.freeLeft) * PieceSize + 7;
+        final int bottomColor = t.bottomColor;
+        // fallen-max = 3
+        final int l = yTry + 3;
+
+        int y = yTry;
+        boolean found = false;
+        while (y < l) {
+            if (!isSimilar(bottomColor,
+                    getMyValue(rgbMySpace, RECT_BOARD, xCoord, (y + r.freeTop + r.height) * PieceSize + 15))) {
+                found = true;
+                break;
+            }
+            y++;
+        }
+        if (found) {
+            // TODO check y-1
+            return y;
+        } else {
+            return -1;
+        }
+    }
+
+    public static final void captureScreen(final Rectangle rect, final int[] rgbScreen) {
+        try {
+            assert (rgbScreen.length == rect.width * rect.height);
+            ROBOT_getRGBPixels.invoke(ROBOT, rect.x, rect.y, rect.width, rect.height, rgbScreen);
+        } catch (Exception e) {
+            // silent
+        }
+    }
+
+    public static final void findTetromino(final int[] rgbMySpace, final Tetromino tetromino) {
+        final BlockType nextBlockType = CurrentData.CALCULATED.futures[0];
+        if (nextBlockType != null) {
+            final int fallen = findTetromino(rgbMySpace, nextBlockType, nextBlockType.rotations[0], 4, 0);
+            tetromino.set(nextBlockType, 0, 4, fallen);
+            return;
+        }
+        for (BlockType bt : BlockType.values()) {
+            if (bt != nextBlockType) {
+                final int fallen = findTetromino(rgbMySpace, bt, bt.rotations[0], 4, 0);
+                if (fallen != -1) {
+                    tetromino.set(bt, 0, 4, fallen);
+                    return;
+                }
+            }
+        }
+
     }
 }

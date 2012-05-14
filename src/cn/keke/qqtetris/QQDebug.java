@@ -44,12 +44,10 @@ public class QQDebug {
         }
     }
 
-    public static void debugScreen(boolean[] data, Tetromino t, BlockType ft1, BlockType ft2) {
-        int hash = BoardUtils.calcBoardStats(data)[0];
-        if (hash != lastBoardHash && ft1 != null) {
+    public static void debugScreen(CurrentData data) {
+        if (data.futures[1] != null) {
             // BoardUtils.printBoard(data);
-            System.out.println("t: " + t + ", f1: " + ft1 + ", f2: " + ft2 + ", h: " + Integer.toHexString(hash));
-            lastBoardHash = hash;
+            System.out.println("t: " + data.tetromino + ", f1: " + data.futures[0] + ", f2: " + data.futures[1]);
         }
     }
 

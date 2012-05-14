@@ -1,9 +1,11 @@
 package cn.keke.qqtetris;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class KeyboardThread extends Thread {
-    LinkedBlockingQueue<MoveType> moves = new LinkedBlockingQueue<MoveType>();
+    private LinkedList<MoveType> moves = new LinkedList<MoveType>();
 
     public void run() {
         while (true) {
@@ -11,7 +13,7 @@ public class KeyboardThread extends Thread {
                 if (this.moves.isEmpty()) {
                     Thread.sleep(50);
                 } else {
-                    QQRobot.press(this.moves.take());
+                    QQRobot.press(this.moves.removeFirst());
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -19,9 +21,14 @@ public class KeyboardThread extends Thread {
         }
     }
 
-    public void putMoves(MoveType[] move) throws InterruptedException {
-        for (MoveType m : move) {
-            this.moves.put(m);
+    public void putMoves(MoveType[] moves) {
+        for (MoveType m : moves) {
+            this.moves.addLast(m);
         }
+
+    }
+
+    public void putMove(MoveType move) {
+        this.moves.addLast(move);
     }
 }

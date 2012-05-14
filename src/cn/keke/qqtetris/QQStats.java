@@ -3,87 +3,68 @@ package cn.keke.qqtetris;
 import java.util.Arrays;
 
 public class QQStats {
-    private final static StopWatch STOPPER  = new StopWatch("stats");
-    public final boolean[]         boardData;
-    public final Tetromino         tetromino;
-    public final BlockType[]       nextBlocks;
-    public final int               hash;
-    public final int               occupied;
-    public final int               highest;
-    public final int               lowest;
-    public final int               holes;
-    public final int               clears;
-    public final int[]             heights;
-    private boolean                inDanger = false;
-    public final boolean           dead;
+    private final static StopWatch STOPPER = new StopWatch("stats");
+    private CurrentData data;
+    public int hash;
+    public int occupied;
+    public int highest;
+    public int lowest;
+    public int holes;
+    public int[] heights;
+    public boolean dead;
+    private boolean calculated;
 
-    public QQStats(boolean[] boardData, Tetromino currentBlock, BlockType[] nextBlocks) {
-        super();
-        if (QQTetris.ANALYZE) {
-            STOPPER.start();
-        }
-        this.boardData = boardData;
-        this.tetromino = currentBlock;
-        this.nextBlocks = nextBlocks;
-        if (currentBlock != null) {
-            this.heights = new int[QQTetris.PiecesWidth];
-            int[] stats = BoardUtils.calcDetailedBoardStats(boardData, this.heights);
-            this.hash = stats[0];
-            this.occupied = stats[1];
-            this.highest = stats[2];
-            this.lowest = stats[3];
-            this.holes = stats[4];
-            this.clears = stats[5];
-            if (this.highest >= QQTetris.PiecesHeight - 1) {
-                this.dead = true;
-            } else {
-                this.dead = false;
+    private boolean calculate() {
+        if (!calculated) {
+            if (QQTetris.ANALYZE) {
+                STOPPER.start();
             }
-            cleanup();
-        } else {
-            this.hash = -1;
-            this.occupied = -1;
-            this.highest = -1;
-            this.lowest = -1;
-            this.holes = -1;
-            this.clears = -1;
-            this.heights = null;
-            this.dead = false;
+            if (data.tetromino.isValid()) {
+                this.heights = new int[QQTetris.PiecesWidth];
+                final int[] stats = BoardUtils.calcDetailedBoardStats(data.board, this.heights);
+                this.hash = stats[0];
+                this.occupied = stats[1];
+                this.highest = stats[2];
+                this.lowest = stats[3];
+                this.holes = stats[4];
+                if (this.highest >= QQTetris.PiecesHeight - 1) {
+                    this.dead = true;
+                } else {
+                    this.dead = false;
+                }
+                calculated = true;
+                return true;
+            }
+            if (QQTetris.ANALYZE) {
+                STOPPER.printTime("construct");
+            }
         }
-        if (QQTetris.ANALYZE) {
-            STOPPER.printTime("construct");
-        }
+        return false;
     }
 
-    private void cleanup() {
-        if (this.clears > 0) {
-            BoardUtils.clearFullLines(this.boardData);
-        }
+    public QQStats(CurrentData data) {
+        this.data = data;
     }
 
     @Override
     public String toString() {
-        String type = null;
-        if (this.tetromino != null) {
-            type = this.tetromino.block.name();
-        }
-        return "QQStats [tetromino=" + type + ", nextBlocks=" + Arrays.toString(this.nextBlocks) + ", hash=" + this.hash + ", occupied=" + this.occupied
-               + ", highest=" + this.highest + ", lowest=" + this.lowest + ", holes=" + this.holes + ", clears=" + this.clears + "]";
-    }
-
-    public void setInDanger(boolean inDanger) {
-        this.inDanger = inDanger;
+        return "QQStats [hash=" + this.hash + ", occupied=" + this.occupied + ", highest=" + this.highest + ", lowest="
+                + this.lowest + ", holes=" + this.holes + "]";
     }
 
     public boolean isInDanger() {
-        return inDanger;
-    }
-
-    public boolean isValid() {
-        if (this.boardData != null && this.tetromino != null && this.nextBlocks != null) {
-            return true;
+        if (calculate()) {
+            return this.lowest > 3 || highest > QQTetris.PiecesHeight - 8;
         }
         return false;
+    }
+
+    public final boolean isValid() {
+        return hash == Integer.MIN_VALUE;
+    }
+
+    public void reset() {
+        hash = Integer.MIN_VALUE;
     }
 
 }

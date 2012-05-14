@@ -549,4 +549,40 @@ public class BestMoveTest extends TestCase {
         assertEquals(MoveResult.CLEVER_MOVE, move.moveDelta);
         assertEquals(8,  move.x);
     }
+    
+
+    public void testCleverT() {
+        boolean[] testBoard1 = BoardUtils.intsToBooleans(
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
+                1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0,
+                1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1
+                );
+        MoveResult move = this.calculator.findBestMove(new QQStats(testBoard1, new Tetromino(BlockType.T, 0, 0, 0),
+                new BlockType[] { BlockType.T }),
+                StrategyType.NORMAL, StrategyType.NORMAL.getAttrs(false));
+        System.out.println(move);
+        BoardUtils.mergeMoveResult(testBoard1, new Tetromino(BlockType.T, 0, 0, 0), move);
+        QQDebug.printBoard(testBoard1);
+        assertTrue(move != MoveCalculator.NO_MOVE);
+        assertEquals(MoveResult.CLEVER_MOVE, move.moveDelta);
+        assertEquals(8,  move.x);
+    }
 }
