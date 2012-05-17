@@ -16,8 +16,10 @@ public class StopWatch {
         return (int) (System.currentTimeMillis() - this.start);
     }
 
-    public void printTime(String taskName) {
-        System.out.println(this.name + " (" + formatMillis((System.currentTimeMillis() - this.start)) + "): " + taskName);
+    public long printTime(String taskName) {
+        final long duration = System.currentTimeMillis() - this.start;
+        System.out.println(this.name + " (" + formatMillis(duration) + "): " + taskName);
+        return duration;
     }
 
     private String formatMillis(long l) {

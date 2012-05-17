@@ -5,9 +5,7 @@ import static cn.keke.qqtetris.QQTetris.DEBUG;
 import static cn.keke.qqtetris.QQTetris.PiecesHeight;
 import static cn.keke.qqtetris.QQTetris.PiecesWidth;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Random;
 
 public class BoardUtils {
@@ -199,10 +197,6 @@ public class BoardUtils {
                             && (y <= 0 || !getBoardValue(board, x, y - 1))) {
                         tetromino.set(BlockType.BLOCK_HASHCODE_TYPE_REFS[idx],
                                 BlockType.BLOCK_HASHCODE_ROTATION_REFS[idx], x, y);
-                        if (DEBUG) {
-                            System.out.println("Found: " + tetromino);
-                            // printBlock(result.getRotation().form);
-                        }
                         break FOUND_TETROMINO;
                     }
                 }
@@ -401,13 +395,8 @@ public class BoardUtils {
     }
 
     public static final void mergeMoveResult(final boolean[] board, final Tetromino t, final MoveResult move) {
-        BlockRotation br = t.block.rotations[t.rotationIdx + move.rotationDelta];
-        int x;
-        if (move.moveDelta == MoveResult.CLEVER_MOVE) {
-            x = move.getTargetX();
-        } else {
-            x = t.x + move.moveDelta;
-        }
+        BlockRotation br = t.block.rotations[move.rIdx];
+        int x = move.x;        
         int y = move.y;
         for (int j = y + br.freeTop; j < y + br.freeTop + br.height; j++) {
             for (int i = x + br.freeLeft; i < x + br.freeLeft + br.width; i++) {

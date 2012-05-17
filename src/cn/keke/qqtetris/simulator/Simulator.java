@@ -5,11 +5,10 @@ import java.util.Random;
 
 import cn.keke.qqtetris.BlockType;
 import cn.keke.qqtetris.BoardUtils;
+import cn.keke.qqtetris.CurrentData;
 import cn.keke.qqtetris.MoveCalculator;
 import cn.keke.qqtetris.MoveResult;
-import cn.keke.qqtetris.QQCalculatorAsync;
 import cn.keke.qqtetris.QQCalculatorSync;
-import cn.keke.qqtetris.QQDebug;
 import cn.keke.qqtetris.QQStats;
 import cn.keke.qqtetris.QQTetris;
 import cn.keke.qqtetris.StopWatch;
@@ -44,7 +43,7 @@ public class Simulator {
                 BlockType.values()[RANDOM.nextInt(BlockType.values().length)],
                 BlockType.values()[RANDOM.nextInt(BlockType.values().length)] };
         Tetromino t;
-        QQStats stats;
+        QQStats stats = CurrentData.CALCULATED.stats;
         MoveResult move;
         int[] clearedLines = new int[7];
         clearedLines[6] = maxSteps;
@@ -54,9 +53,8 @@ public class Simulator {
         double averageHeight = 0;
         while (steps < maxSteps) {
             t = new Tetromino(types[0], 0, QQTetris.PiecesWidth / 2, 0);
-            stats = new QQStats(t, types);
-            move = this.calculator.findBestMove(stats, this.strategy, strategyAttrs);
-            if (move == MoveCalculator.NO_MOVE) {
+            move = this.calculator.findBestMove(CurrentData.CALCULATED.set(board, t, types), this.strategy, strategyAttrs);
+            if (!move.isValid()) {
                 clearedLines[5] = (int) Math.round(averageHeight * 1000000);
                 this.stopper.printTime("> ENDED at step " + steps + ": " + Arrays.toString(clearedLines));
                 break;
@@ -79,7 +77,7 @@ public class Simulator {
             BoardUtils.mergeMoveResult(board, t, move);
             clears = BoardUtils.clearFullLines(board);
             int height = BoardUtils.calcDetailedBoardStats(board, this.initialHeights)[2];
-            averageHeight = ((double) height + averageHeight * steps) / (steps + 1);
+            averageHeight = (height + averageHeight * steps) / (steps + 1);
             // QQDebug.printBoard(this.board);
 //            if (clears > 0) {
 //            	System.out.println("avg: "+averageHeight + ", h: " + height+", clear: "+clears+", sum: "+Arrays.toString(clearedLines));

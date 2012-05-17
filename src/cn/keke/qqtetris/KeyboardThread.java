@@ -1,34 +1,43 @@
 package cn.keke.qqtetris;
 
 import java.util.LinkedList;
-import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.Semaphore;
 
 public class KeyboardThread extends Thread {
+    private Semaphore lock = new Semaphore(20);
     private LinkedList<MoveType> moves = new LinkedList<MoveType>();
 
+    public KeyboardThread() {
+        super("Keyboard");
+    }
+    
+    @Override
     public void run() {
+        this.lock.acquireUninterruptibly(this.lock.availablePermits());
         while (true) {
-            try {
-                if (this.moves.isEmpty()) {
-                    Thread.sleep(50);
-                } else {
-                    QQRobot.press(this.moves.removeFirst());
+            this.lock.acquireUninterruptibly();
+            synchronized (this.moves) {
+                if (!this.moves.isEmpty()) {
+                    try {
+                        QQRobot.press(this.moves.removeFirst());
+                    } catch (InterruptedException e) {
+                        // errr
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }
 
-    public void putMoves(MoveType[] moves) {
-        for (MoveType m : moves) {
-            this.moves.addLast(m);
+    public final void putMoves(final MoveType[] moves) {
+        synchronized (this.moves) {
+            for (MoveType m : moves) {
+                putMove(m);
+            }
         }
-
     }
 
-    public void putMove(MoveType move) {
+    private final void putMove(final MoveType move) {
         this.moves.addLast(move);
+        this.lock.release();
     }
 }

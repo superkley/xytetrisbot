@@ -1,10 +1,13 @@
 package cn.keke.qqtetris;
 
+import java.util.Calendar;
+
+import cn.keke.qqtetris.exceptions.NoFuturesFoundException;
 import cn.keke.qqtetris.exceptions.NoTetrominoFoundException;
 import cn.keke.qqtetris.exceptions.UnexpectedBoardChangeException;
 
 public enum WorkflowStep {
-    DETECT_WINDOW(1000) {
+    DETECT_WINDOW(2000) {
         @Override
         public boolean detect() {
             // clear window coordinate, detect and check
@@ -19,17 +22,17 @@ public enum WorkflowStep {
         }
 
         @Override
-        public WorkflowStep onError() {
+        public WorkflowStep fail() {
             // detect again
             return this;
         }
 
         @Override
-        public WorkflowStep doNext() {
+        public WorkflowStep next() {
             // starts with board detection
             QQTetris.captureScreenThread.setStarted(true);
             QQTetris.activate();
-            return DETECT_MY_SPACE.execute();
+            return INITIAL_BOARD.execute();
         }
 
         @Override
@@ -39,7 +42,7 @@ public enum WorkflowStep {
             captureScreen();
         }
     },
-    DETECT_MY_SPACE(100) {
+    INITIAL_BOARD(200) {
         @Override
         public boolean detect() {
             // detect board, tetromino and futures, check real tetromino
@@ -49,12 +52,8 @@ public enum WorkflowStep {
             QQRobot.checkBoardExists(RGB_MY_SPACE);
             CurrentData.REAL.reset();
             QQRobot.findBoard(RGB_MY_SPACE, CurrentData.REAL.board);
-            QQRobot.findAndCleanBoard(CurrentData.REAL.board, CurrentData.REAL.tetromino);
-            QQRobot.findFutures(RGB_MY_SPACE, CurrentData.REAL.futures);
-
-            if (QQTetris.DEBUG) {
-                QQDebug.debugScreen(CurrentData.REAL);
-            }
+            QQRobot.findAndCleanBoard(CurrentData.REAL.board, CurrentData.REAL.tetromino, CurrentData.REAL.nextBlocks);
+            QQRobot.findFutures(RGB_MY_SPACE, CurrentData.REAL.nextBlocks);
 
             if (CurrentData.REAL.tetromino.isValid()) {
                 return true;
@@ -64,13 +63,13 @@ public enum WorkflowStep {
         }
 
         @Override
-        public WorkflowStep onError() {
+        public WorkflowStep fail() {
             // e.g. board is not there, window moved? hidden?
             return DETECT_WINDOW;
         }
 
         @Override
-        public WorkflowStep doNext() {
+        public WorkflowStep next() {
             // send data to calculator and go on
             startCalculator(true);
             return DETECT_ANOMALIES;
@@ -83,7 +82,7 @@ public enum WorkflowStep {
             captureMySpace();
         }
     },
-    DETECT_ANOMALIES(100) {
+    DETECT_ANOMALIES(200) {
         private int boardChangeDetected;
 
         @Override
@@ -105,16 +104,16 @@ public enum WorkflowStep {
         }
 
         @Override
-        public WorkflowStep onError() {
+        public WorkflowStep fail() {
             // abort calculator
             // no extra screen capture needed
             this.boardChangeDetected = 0;
-            abortCalculation();
-            return DETECT_MY_SPACE.execute(false);
+            QQTetris.calculationThread.cancel();
+            return INITIAL_BOARD.execute(false);
         }
 
         @Override
-        public WorkflowStep doNext() {
+        public WorkflowStep next() {
             this.boardChangeDetected = 0;
             return FOLLOW_MOVE.execute(false);
         }
@@ -147,14 +146,14 @@ public enum WorkflowStep {
                 }
             }
             CurrentData.REAL.reset();
-            QQRobot.findTetromino(RGB_MY_SPACE, CurrentData.REAL.tetromino);
-            QQRobot.findFutures(RGB_MY_SPACE, CurrentData.REAL.futures);
+            QQRobot.findTetromino(RGB_MY_SPACE, CurrentData.REAL.tetromino, CurrentData.REAL.nextBlocks, 1);
+            QQRobot.findFutures(RGB_MY_SPACE, CurrentData.REAL.nextBlocks);
             boolean valid = false;
             if (CurrentData.REAL.tetromino.isValid()) {
-                if (CurrentData.REAL.futures[0] == null) {
+                if (CurrentData.REAL.nextBlocks[1] == null) {
                     this.missingFutures++;
                     if (this.missingFutures == 3) {
-                        valid = true;
+                        throw new NoFuturesFoundException("没找到预知块！");
                     }
                 } else {
                     valid = true;
@@ -162,7 +161,7 @@ public enum WorkflowStep {
             } else {
                 this.missingTetromino++;
                 if (this.missingTetromino == 2000 / this.delayMillis) {
-                    throw new NoTetrominoFoundException("没找到块！");
+                    throw new NoTetrominoFoundException("没找到游戏块！");
                 }
             }
             if (valid) {
@@ -173,16 +172,16 @@ public enum WorkflowStep {
         }
 
         @Override
-        public WorkflowStep onError() {
+        public WorkflowStep fail() {
             // no extra screen capture needed
             this.boardChangeDetected = 0;
             this.missingFutures = 0;
             this.missingTetromino = 0;
-            return DETECT_MY_SPACE.execute(false);
+            return INITIAL_BOARD.execute(false);
         }
 
         @Override
-        public WorkflowStep doNext() {
+        public WorkflowStep next() {
             // send data (only blocks data) to calculator
             this.boardChangeDetected = 0;
             this.missingFutures = 0;
@@ -208,41 +207,52 @@ public enum WorkflowStep {
             // update real position
             // true if no more moves
             // false if there are still moves to do
-            // error if cannot find piece or piece stucked
+            // error if cannot find piece or piece sticked
             if (CurrentData.CALCULATED.tetromino.move.hasMove()) {
-                final int ty = QQRobot.findTetromino(CurrentData.CALCULATED.tetromino);
-                final int fallen = ty - CurrentData.CALCULATED.tetromino.y;
-                if (fallen > 0) {
-                    CurrentData.CALCULATED.tetromino.move.fallen = fallen;
-                    CurrentData.CALCULATED.tetromino.y = ty;
-                } else if (fallen == -1) {
+                final Tetromino moveTetromino = CurrentData.CALCULATED.tetromino.move.tetromino;
+                final int ty = QQRobot.findTetromino(moveTetromino, 6);
+                if (ty == -1) {
                     missingTetromino++;
-                    if (missingTetromino == 5) {
+                    if (missingTetromino == 3) {
+                        // System.out.println("没找到块" + nr + "！" + CurrentData.CALCULATED.tetromino.move + ", "
+                        // + CurrentData.CALCULATED.tetromino + ", "
+                        // + CurrentData.CALCULATED.tetromino.move.tetromino);
+                        // QQDebug.save(QQRobot.getScreen(), "qqtetris_" + nr);
+                        // nr++;
                         throw new NoTetrominoFoundException("没找到块！");
+                        // CurrentData.CALCULATED.tetromino.move.doMove();
                     }
-                }
-                if (CurrentData.CALCULATED.tetromino.move.hasMove()) {
+                } else {
+                    final int fallen = ty - moveTetromino.y;
+                    if (fallen > 0) {
+                        // System.out.println("掉落：" + fallen);
+                        CurrentData.CALCULATED.tetromino.move.fallen = fallen;
+                        moveTetromino.y = ty;
+                    }
                     CurrentData.CALCULATED.tetromino.move.doMove();
                 }
             }
             if (CurrentData.CALCULATED.tetromino.move.hasMove()) {
                 return false;
             } else {
+                // QQDebug.printBoard(CurrentData.CALCULATED.board);
                 return true;
             }
         }
 
         @Override
-        public WorkflowStep onError() {
+        public WorkflowStep fail() {
             // err? game finished?
             this.missingTetromino = 0;
-            return DETECT_MY_SPACE.execute(false);
+            return INITIAL_BOARD.execute(false);
         }
 
         @Override
-        public WorkflowStep doNext() {
+        public WorkflowStep next() {
             // send move finished to calculator
-            afterMoveFinished();
+            // merge calculated board with finished move
+            // calculator.mergeBoard(move);
+            QQTetris.calculationThread.mergeMove();
             checkAutoBlue();
             this.missingTetromino = 0;
             return DETECT_BLOCKS;
@@ -258,7 +268,9 @@ public enum WorkflowStep {
     private static final int[] RGB_MY_SPACE = new int[QQRobot.RECT_MY.width * QQRobot.RECT_MY.height];
 
     protected final int delayMillis;
-    private int maxDuration;
+    private int maxDuration = 50;
+    private int maxDurationNext = 50;
+    private int maxDurationError = 50;
 
     WorkflowStep(final int delay) {
         this.delayMillis = delay;
@@ -294,9 +306,23 @@ public enum WorkflowStep {
         }
     }
 
+    private final void checkDurationNext(final int duration) {
+        if (duration > this.maxDurationNext) {
+            System.out.println(name() + " (max-next): " + duration);
+            this.maxDurationNext = duration;
+        }
+    }
+
+    private final void checkDurationError(final int duration) {
+        if (duration > this.maxDurationError) {
+            System.out.println(name() + " (max-error): " + duration);
+            this.maxDurationError = duration;
+        }
+    }
+
     private static void waitMillis(final WorkflowStep step, final int duration) {
         try {
-            Thread.currentThread().wait(Math.max(1, step.delayMillis - duration));
+            Thread.sleep(Math.max(1, step.delayMillis - duration));
         } catch (InterruptedException e) {
             // silent
         }
@@ -307,24 +333,44 @@ public enum WorkflowStep {
     }
 
     WorkflowStep execute(final boolean captureScreen) {
-        WorkflowStep nextStep = this;
         final long start = System.currentTimeMillis();
         try {
             if (captureScreen) {
                 capture();
             }
             if (detect()) {
-                nextStep = doNext();
-                waitMillis(nextStep, 0);
-            } else {
                 final int duration = (int) (System.currentTimeMillis() - start);
-                checkDuration(duration);
-                waitMillis(nextStep, duration);
+                checkDurationNext(duration);
+                return doNext();
+            } else {
+                // System.out.print(".");
+                return doAgain(this, start);
             }
         } catch (Throwable t) {
-            nextStep = onError();
-            waitMillis(nextStep, 0);
+            final int duration = (int) (System.currentTimeMillis() - start);
+            checkDurationError(duration);
+            return doError(t);
         }
+    }
+
+    private final WorkflowStep doError(final Throwable t) {
+        // System.err.println("骤：" + t.toString());
+        final WorkflowStep nextStep = fail();
+        waitMillis(nextStep, 0);
+        return nextStep;
+    }
+
+    private final WorkflowStep doAgain(final WorkflowStep nextStep, final long start) {
+        final int duration = (int) (System.currentTimeMillis() - start);
+        checkDuration(duration);
+        waitMillis(nextStep, duration);
+        return nextStep;
+    }
+
+    private final WorkflowStep doNext() {
+        final WorkflowStep nextStep = next();
+        // System.out.print("\n" + nextStep.name() + "：");
+        waitMillis(nextStep, 0);
         return nextStep;
     }
 
@@ -334,30 +380,20 @@ public enum WorkflowStep {
                     CurrentData.CALCULATED.board.length);
         }
         CurrentData.CALCULATED.reset();
-        CurrentData.CALCULATED.futures[0] = CurrentData.REAL.futures[0];
-        CurrentData.CALCULATED.futures[1] = CurrentData.REAL.futures[1];
+        CurrentData.CALCULATED.nextBlocks[0] = CurrentData.REAL.nextBlocks[0];
+        CurrentData.CALCULATED.nextBlocks[1] = CurrentData.REAL.nextBlocks[1];
+        CurrentData.CALCULATED.nextBlocks[2] = CurrentData.REAL.nextBlocks[2];
         CurrentData.CALCULATED.tetromino.from(CurrentData.REAL.tetromino);
         // send wakeup to calculator
         // calculator will stopped after calculating and change step to follow move
         QQTetris.calculationThread.startCalculation();
     }
 
-    private static void abortCalculation() {
-        // send abort to calculator
-        QQTetris.calculationThread.cancel();
-    }
-
-    private static void afterMoveFinished() {
-        // merge calculated board with finished move
-        // calculator.mergeBoard(move);
-        QQTetris.calculationThread.mergeMove();
-    }
-
     public abstract void capture();
 
     public abstract boolean detect();
 
-    public abstract WorkflowStep onError();
+    public abstract WorkflowStep fail();
 
-    public abstract WorkflowStep doNext();
+    public abstract WorkflowStep next();
 }
