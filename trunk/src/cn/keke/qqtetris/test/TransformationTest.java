@@ -2,18 +2,15 @@ package cn.keke.qqtetris.test;
 
 import java.util.Arrays;
 
+import junit.framework.TestCase;
 import cn.keke.qqtetris.BlockType;
 import cn.keke.qqtetris.BoardUtils;
-import cn.keke.qqtetris.MoveResult;
-import cn.keke.qqtetris.QQCalculatorAsync;
 import cn.keke.qqtetris.QQDebug;
 import cn.keke.qqtetris.StrategyType;
-import cn.keke.qqtetris.Tetromino;
 import cn.keke.qqtetris.TransformationResult;
 
-import junit.framework.TestCase;
-
 public class TransformationTest extends TestCase {
+    // @formatter:off
     private static boolean[] TEST_BOARD_1 = BoardUtils.intsToBooleans(
                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -37,9 +34,9 @@ public class TransformationTest extends TestCase {
                                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0,
                                            0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1
                                            );
-
-    private static final TransformationResult   r1           = new TransformationResult(BlockType.S, 0, 0, 19, -1, null);
-    private static final TransformationResult   r2           = new TransformationResult(BlockType.I, 1, 9, 16, -1, null);
+    // @formatter:on
+    private static final TransformationResult r1 = new TransformationResult(BlockType.S, 0, 0, 19, -1, null);
+    private static final TransformationResult r2 = new TransformationResult(BlockType.I, 1, 9, 16, -1, null);
 
     private static final TransformationResult[] TEST_RESULTS_1 = { r1, r2 };
 
@@ -60,7 +57,7 @@ public class TransformationTest extends TestCase {
         assertEquals(5, heights[5]);
         assertEquals(5, heights[11]);
     }
-    
+
     public void testBlocksMerge() {
         int[] boardCopy = BoardUtils.booleansToInts(TEST_BOARD_1);
         BoardUtils.mergeResults(boardCopy, TEST_RESULTS_1);

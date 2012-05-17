@@ -23,11 +23,11 @@ public class QQDebug {
 
     public static void save(BufferedImage image, String fileName) {
         try {
-            File outputfile = new File(System.getenv("tmp") + "\\" + fileName + ".png");
+            File outputfile = new File("c:\\temp\\" + fileName + ".png");
             ImageIO.write(image, "png", outputfile);
             System.out.println("Saved screen under '" + outputfile.getAbsolutePath() + "'");
         } catch (IOException e) {
-            e.printStackTrace();
+            // ignore
         }
     }
 
@@ -45,9 +45,9 @@ public class QQDebug {
     }
 
     public static void debugScreen(CurrentData data) {
-        if (data.futures[1] != null) {
+        if (data.nextBlocks[1] != null) {
             // BoardUtils.printBoard(data);
-            System.out.println("t: " + data.tetromino + ", f1: " + data.futures[0] + ", f2: " + data.futures[1]);
+            System.out.println("t: " + data.tetromino + ", f1: " + data.nextBlocks[1] + ", f2: " + data.nextBlocks[2]);
         }
     }
 

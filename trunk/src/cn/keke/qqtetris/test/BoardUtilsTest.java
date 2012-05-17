@@ -1,11 +1,10 @@
 package cn.keke.qqtetris.test;
 
+import junit.framework.TestCase;
 import cn.keke.qqtetris.BlockType;
 import cn.keke.qqtetris.BoardUtils;
 import cn.keke.qqtetris.QQTetris;
 import cn.keke.qqtetris.StopWatch;
-
-import junit.framework.TestCase;
 
 public class BoardUtilsTest extends TestCase {
     private final static StopWatch STOPPER = new StopWatch("test");

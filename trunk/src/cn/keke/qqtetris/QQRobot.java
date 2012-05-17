@@ -13,10 +13,10 @@ import static cn.keke.qqtetris.QQTetris.Future2Height;
 import static cn.keke.qqtetris.QQTetris.Future2Width;
 import static cn.keke.qqtetris.QQTetris.Future2X;
 import static cn.keke.qqtetris.QQTetris.Future2Y;
-import static cn.keke.qqtetris.QQTetris.MyCoordX;
-import static cn.keke.qqtetris.QQTetris.MyCoordY;
 import static cn.keke.qqtetris.QQTetris.MyAreaHeight;
 import static cn.keke.qqtetris.QQTetris.MyAreaWidth;
+import static cn.keke.qqtetris.QQTetris.MyCoordX;
+import static cn.keke.qqtetris.QQTetris.MyCoordY;
 import static cn.keke.qqtetris.QQTetris.PieceSize;
 import static cn.keke.qqtetris.QQTetris.PiecesHeight;
 import static cn.keke.qqtetris.QQTetris.PiecesWidth;
@@ -27,9 +27,6 @@ import static cn.keke.qqtetris.QQTetris.QQWidth;
 import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsEnvironment;
-import java.awt.HeadlessException;
 import java.awt.MouseInfo;
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -38,16 +35,13 @@ import java.awt.Toolkit;
 import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.awt.peer.RobotPeer;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 
+import sun.awt.ComponentFactory;
 import cn.keke.qqtetris.exceptions.BoardNotReadyException;
 import cn.keke.qqtetris.exceptions.MissingTetrisWindowException;
 import cn.keke.qqtetris.exceptions.UnknownBlockTypeException;
 import cn.keke.qqtetris.exceptions.UnknownBoardStateException;
-
-import sun.awt.ComponentFactory;
 
 public class QQRobot {
     private static final StopWatch STOPPER = new StopWatch("robot");
@@ -92,14 +86,15 @@ public class QQRobot {
     }
 
     public static void click(int x, int y) throws InterruptedException {
-        if (!QQTetris.ANALYZE) {
-            Point oldLocation = MouseInfo.getPointerInfo().getLocation();
-            ROBOT.mouseMove(RECT_SCREEN.x + x, RECT_SCREEN.y + y);
-            ROBOT.mousePress(InputEvent.BUTTON1_MASK);
-            Thread.sleep(ROBOT_DELAY_MILLIS);
-            ROBOT.mouseRelease(InputEvent.BUTTON1_MASK);
-            Thread.sleep(ROBOT_DELAY_MILLIS);
-            ROBOT.mouseMove(oldLocation.x, oldLocation.y);
+        Point oldLocation = MouseInfo.getPointerInfo().getLocation();
+        ROBOT.mouseMove(RECT_SCREEN.x + x, RECT_SCREEN.y + y);
+        ROBOT.mousePress(InputEvent.BUTTON1_MASK);
+        Thread.sleep(ROBOT_DELAY_MILLIS);
+        ROBOT.mouseRelease(InputEvent.BUTTON1_MASK);
+        Thread.sleep(ROBOT_DELAY_MILLIS);
+        ROBOT.mouseMove(oldLocation.x, oldLocation.y);
+        if (QQTetris.DEBUG) {
+            System.out.println("鼠：" + x + ", " + y);
         }
     }
 
@@ -262,9 +257,8 @@ public class QQRobot {
             return true;
         }
         if (!IGNORE_INVALID_BOARD_COLOR) {
-            System.out.print("Invalid board color found: ");
-            QQDebug.debugColor(c);
-            throw new UnknownBoardStateException("Color cannot be interpreted: " + Integer.toHexString(c));
+            // QQDebug.debugColor(c);
+            throw new UnknownBoardStateException("没找到游戏板：" + Integer.toHexString(c));
         }
         return false;
     }
@@ -308,18 +302,12 @@ public class QQRobot {
         }
     }
 
-    private static void press(MoveType move, int sleep) throws InterruptedException {
+    public static void press(MoveType move) throws InterruptedException {
         ROBOT.keyPress(move.KEY);
-        Thread.sleep(sleep);
+        Thread.sleep(ROBOT_DELAY_MILLIS);
         ROBOT.keyRelease(move.KEY);
         Thread.sleep(1);
-        if (QQTetris.ANALYZE) {
-            System.out.println("pressed: " + move);
-        }
-    }
-
-    public static void press(MoveType move) throws InterruptedException {
-        press(move, ROBOT_DELAY_MILLIS);
+        // System.out.println("键：" + move);
     }
 
     public static final void readBoardData(final int[] myData, final boolean[] board) {
@@ -420,32 +408,35 @@ public class QQRobot {
         readBoardData(rgbMySpace, board);
     }
 
-    public static final void findAndCleanBoard(final boolean[] board, final Tetromino tetromino) {
+    public static final void findAndCleanBoard(final boolean[] board, final Tetromino tetromino,
+            final BlockType[] nextBlocks) {
         BoardUtils.getAndCleanNextType(board, tetromino);
+        nextBlocks[0] = tetromino.block;
         BoardUtils.clearFullLines(board);
     }
 
     public static final void findFutures(final int[] rgbMySpace, final BlockType[] futures) {
-        futures[0] = readFutureBlock(rgbMySpace);
-        futures[1] = readFuture2Block(rgbMySpace);
+        futures[1] = readFutureBlock(rgbMySpace);
+        futures[2] = readFuture2Block(rgbMySpace);
     }
 
-    public static final int findTetromino(final Tetromino tetromino) {
+    public static final int findTetromino(final Tetromino tetromino, final int maxFallen) {
         final BlockType t = tetromino.block;
         final BlockRotation r = tetromino.rotation;
         final int xTry = tetromino.x;
         final int yTry = tetromino.y;
 
-        return findTetromino(t, r, xTry, yTry);
+        return findTetromino(t, r, xTry, yTry, maxFallen);
     }
 
-    private static int findTetromino(final BlockType t, final BlockRotation r, final int xTry, final int yTry) {
+    private static int findTetromino(final BlockType t, final BlockRotation r, final int xTry, final int yTry,
+            final int maxFallen) {
         final Point bottomPoint = new Point(RECT_MY.x, RECT_MY.y);
         bottomPoint.translate(RECT_BOARD.x, RECT_BOARD.y);
         final int xCoord = (xTry + r.freeLeft) * PieceSize + 7 + bottomPoint.x;
         final int bottomColor = t.bottomColor;
         // fallen-max = 3
-        final int l = yTry + 3;
+        final int l = yTry + maxFallen;
 
         int y = yTry;
         boolean found = false;
@@ -466,11 +457,11 @@ public class QQRobot {
     }
 
     private static int findTetromino(final int[] rgbMySpace, final BlockType t, final BlockRotation r, final int xTry,
-            final int yTry) {
+            final int yTry, final int maxFallen) {
         final int xCoord = (xTry + r.freeLeft) * PieceSize + 7;
         final int bottomColor = t.bottomColor;
         // fallen-max = 3
-        final int l = yTry + 3;
+        final int l = yTry + maxFallen;
 
         int y = yTry;
         boolean found = false;
@@ -499,18 +490,21 @@ public class QQRobot {
         }
     }
 
-    public static final void findTetromino(final int[] rgbMySpace, final Tetromino tetromino) {
-        final BlockType nextBlockType = CurrentData.CALCULATED.futures[0];
+    public static final void findTetromino(final int[] rgbMySpace, final Tetromino tetromino,
+            final BlockType[] nextBlocks, final int maxFallen) {
+        final BlockType nextBlockType = CurrentData.CALCULATED.nextBlocks[1];
         if (nextBlockType != null) {
-            final int fallen = findTetromino(rgbMySpace, nextBlockType, nextBlockType.rotations[0], 4, 0);
+            final int fallen = findTetromino(rgbMySpace, nextBlockType, nextBlockType.rotations[0], 4, 0, maxFallen);
             tetromino.set(nextBlockType, 0, 4, fallen);
+            nextBlocks[0] = nextBlockType;
             return;
         }
         for (BlockType bt : BlockType.values()) {
             if (bt != nextBlockType) {
-                final int fallen = findTetromino(rgbMySpace, bt, bt.rotations[0], 4, 0);
+                final int fallen = findTetromino(rgbMySpace, bt, bt.rotations[0], 4, 0, maxFallen);
                 if (fallen != -1) {
                     tetromino.set(bt, 0, 4, fallen);
+                    nextBlocks[0] = bt;
                     return;
                 }
             }

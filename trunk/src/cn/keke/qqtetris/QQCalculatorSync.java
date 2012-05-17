@@ -1,21 +1,23 @@
 package cn.keke.qqtetris;
 
 import java.awt.Point;
-import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class QQCalculatorSync extends MoveCalculator {
-    private final StopWatch       STOPPER       = new StopWatch("calcSync");
-    private TransformationResult[]       cachedResults = new TransformationResult[QQTetris.MAX_BLOCKS - 1];
-    private boolean                      cached;
+    private final StopWatch STOPPER = new StopWatch("calcSync");
+    private final TransformationResult[] cachedResults = new TransformationResult[QQTetris.MAX_BLOCKS - 1];
 
     public QQCalculatorSync() {
         // nothing to do
+        for (int i = 0; i < cachedResults.length; i++) {
+            cachedResults[i] = new TransformationResult();
+        }
     }
 
     public static class State {
-        public int              r;
-        public int              x;
-        public ArrayList<Point> cleverPoints;
+        public int r;
+        public int x;
+        public LinkedList<Point> cleverPoints;
 
         public State(int r, int x) {
             super();
@@ -24,7 +26,8 @@ public class QQCalculatorSync extends MoveCalculator {
         }
     }
 
-    private static final boolean incrementState(final State[] states, final int stage, final int width, final BlockType b) {
+    private static final boolean incrementState(final State[] states, final int stage, final int width,
+            final BlockType b) {
         State s = states[stage];
         if (s == null) {
             s = new State(0, 0);
@@ -41,37 +44,36 @@ public class QQCalculatorSync extends MoveCalculator {
         return true;
     }
 
+    private final boolean[] BUFFER_BOARD = new boolean[QQTetris.PiecesHeight * QQTetris.PiecesWidth];
+
     @Override
-    public MoveResult findBestMove(QQStats stats, StrategyType strategy, double[] strategyAttrs) {
-        TransformationResult bestResult = null;
+    public final void findBestMove(final boolean[] board, final Tetromino t, final BlockType[] nextBlocks,
+            final QQStats stats, final StrategyType strategy, final double[] strategyAttrs) {
+        final TransformationResult bestResult = new TransformationResult();
 
-        Tetromino t = stats.tetromino;
-        BlockType[] nextBlocks = initializeNextBlocks(stats.nextBlocks, strategy, stats);
+        final int l = initializeNextBlocks(nextBlocks, strategy, stats);
 
-        if (strategy.fastInDanger && stats.isInDanger() && this.cached && this.cachedResults[0].block == t.block) {
-            bestResult = this.cachedResults[0];
-
-            if (this.cachedResults[1] != null) {
-                this.cachedResults[0] = this.cachedResults[1];
-                this.cachedResults[1] = null;
+        final TransformationResult cached = this.cachedResults[0];
+        if (strategy.fastInDanger && this.cachedResults[0].isValid() && stats.isInDanger() && cached.block == t.block) {
+            bestResult.set(cached);
+            if (this.cachedResults[1].isValid()) {
+                this.cachedResults[0].set(this.cachedResults[1]);
+                this.cachedResults[1].invalidate();
             } else {
-                this.cached = false;
-                this.cachedResults[0] = null;
+                this.cachedResults[0].invalidate();
             }
         } else {
-            boolean[] board = stats.boardData;
-            boolean[] boardCopy = new boolean[board.length];
-            System.arraycopy(board, 0, boardCopy, 0, board.length);
+            stats.calculate();
+            System.arraycopy(board, 0, BUFFER_BOARD, 0, board.length);
             STOPPER.start();
-            int width = QQTetris.PiecesWidth;
-            int l = nextBlocks.length;
-            State[] states = new State[l];
+            final int width = QQTetris.PiecesWidth;
+            final State[] states = new State[l];
 
             int stage = 0;
             State s;
             BlockType bt;
             BlockRotation br;
-            ArrayList<Point> cleverPoints;
+            LinkedList<Point> cleverPoints;
             int x, y;
 
             final int[][] piecesHeights = new int[l][];
@@ -85,7 +87,7 @@ public class QQCalculatorSync extends MoveCalculator {
             double bestScore = NO_RESULT_SCORE;
 
             // STOPPER.start();
-            while (true) {
+            while (!cancelled) {
                 if (stage == -1) {
                     break;
                 } else {
@@ -101,41 +103,39 @@ public class QQCalculatorSync extends MoveCalculator {
                         // !stats.isInDanger() &&
                         if (y >= QQTetris.BlockDrawSize) {
                             if (stage > 0) {
-                                BoardUtils.mergeResults(boardCopy, results);
+                                BoardUtils.mergeResults(BUFFER_BOARD, results);
                             }
-                            cleverPoints = findCleverMove(boardCopy, br, x, y);
+                            cleverPoints = findCleverMove(BUFFER_BOARD, br, x, y);
                             if (cleverPoints != null) {
                                 s.cleverPoints = cleverPoints;
                                 y = cleverPoints.get(0).y;
                             }
                             if (stage > 0) {
-                                System.arraycopy(board, 0, boardCopy, 0, board.length);
+                                System.arraycopy(board, 0, BUFFER_BOARD, 0, board.length);
                             }
                         }
-                        boolean correctPlacement = stage > 0 || s.cleverPoints != null || br.faultChecker.check(board, x, y);
+                        boolean correctPlacement = stage > 0 || s.cleverPoints != null
+                                || br.faultChecker.check(board, x, y);
                         if (y >= 0 && correctPlacement) {
                             results[stage].update(s.r, x, y, -1, s.cleverPoints);
                             if (stage == l - 1) {
                                 // calculate stats for each combination
                                 double score = BoardUtils.mergeAndCalcScore(board, results, strategy, strategyAttrs);
                                 if (QQTetris.DEBUG) {
-                                    System.out.println("score: " + (int) score + ", stage: " + stage + ", r: " + s.r + ", x: " + s.x + ", y: " + y
-                                                       + ", clever: "
-                                                       + s.cleverPoints);
+                                    System.out.println("score: " + (int) score + ", stage: " + stage + ", r: " + s.r
+                                            + ", x: " + s.x + ", y: " + y + ", clever: " + s.cleverPoints);
                                 }
                                 if (score > bestScore) {
                                     bestScore = score;
-                                    bestResult = new TransformationResult(results[0], score);
+                                    bestResult.set(results[0], score);
                                     if (l > 2) {
-                                        this.cachedResults[0] = new TransformationResult(results[1]);
-                                        this.cachedResults[1] = new TransformationResult(results[2]);
-                                        this.cached = true;
+                                        this.cachedResults[0].set(results[1]);
+                                        this.cachedResults[1].set(results[2]);
                                     } else if (l == 2) {
-                                        this.cachedResults[0] = new TransformationResult(results[1]);
-                                        this.cachedResults[1] = null;
-                                        this.cached = true;
+                                        this.cachedResults[0].set(results[1]);
+                                        this.cachedResults[1].invalidate();
                                     } else {
-                                        this.cached = false;
+                                        this.cachedResults[0].invalidate();
                                     }
                                 }
                             } else {
@@ -155,22 +155,27 @@ public class QQCalculatorSync extends MoveCalculator {
             }
             // STOPPER.printTime("while");
         }
-
-        // calculate MoveResult
-        MoveResult moveResult = NO_MOVE;
-        if (bestResult != null) {
-            if (bestResult.getCleverPoints() == null) {
-                moveResult = createMove(bestResult, t);
-            } else {
-                moveResult = createCleverMove(t, bestResult.getRotationIdx(), bestResult.getCleverPoints(), bestResult.getScore());
+        if (cancelled) {
+            this.cachedResults[0].invalidate();
+            this.slowMoveDetected = false;
+        } else {
+            // calculate MoveResult
+            if (bestResult != null) {
+                if (bestResult.getCleverPoints() == null) {
+                    createMove(bestResult, t);
+                } else {
+                    createCleverMove(t, bestResult.getRotationIdx(), bestResult.getCleverPoints(),
+                            bestResult.getScore());
+                }
+            }
+            if (STOPPER.measure() > SLOW_MOVE_MILLIS) {
+                this.slowMoveDetected = true;
             }
         }
-        if (QQTetris.ANALYZE) {
-            STOPPER.printTime("calcSync");
-        }
-        if (STOPPER.measure() > SLOW_MOVE_MILLIS) {
-            this.slowMoveDetected = true;
-        }
-        return moveResult;
+    }
+
+    @Override
+    public void cancel() {
+        cancelled = true;
     }
 }

@@ -1,25 +1,13 @@
 package cn.keke.qqtetris;
 
-import static cn.keke.qqtetris.QQTetris.ANALYZE;
-
 import java.awt.Point;
-import java.util.ArrayList;
 import java.util.LinkedList;
 
 import cn.keke.qqtetris.exceptions.MoveNotPossibleException;
-import cn.keke.qqtetris.exceptions.UnexpectedStateException;
 
 public final class MoveResult {
     private final LinkedList<Point> cleverPoints;
     private boolean valid;
-    
-    public int getTargetX() {
-        return this.cleverPoints.get(0).x;
-    }
-
-    public int getTargetY() {
-        return this.cleverPoints.get(0).y;
-    }
 
     @Override
     public int hashCode() {
@@ -54,10 +42,11 @@ public final class MoveResult {
 
     public static final int CLEVER_MOVE = Integer.MIN_VALUE;
 
-    public MoveResult set(Tetromino tetromino, int rIdx, int rDelta, ArrayList<Point> points, double score) {
+    public MoveResult set(final Tetromino tetromino, final int rIdx, final int rDelta, final LinkedList<Point> points,
+            final double score) {
         this.tetromino = tetromino;
         this.rotationDelta = rDelta;
-        Point point = points.get(0);
+        final Point point = points.getFirst();
         this.rIdx = rIdx;
         this.x = point.x;
         this.y = point.y;
@@ -68,27 +57,31 @@ public final class MoveResult {
         this.fallen = 0;
         this.moveFinished = false;
         this.valid = true;
+        this.clever = true;
         return this;
     }
 
-    public MoveResult set(TransformationResult result, Tetromino tetromino, int rotationDelta, int moveDelta) {
+    public MoveResult set(final TransformationResult result, final Tetromino tetromino, final int rotationDelta,
+            final int moveDelta) {
         if (result == null) {
             this.rIdx = -1;
             this.x = -1;
             this.y = -1;
             this.score = Double.NEGATIVE_INFINITY;
+            this.valid = false;
         } else {
             this.rIdx = result.getRotationIdx();
             this.x = result.getX();
             this.y = result.getY();
             this.score = result.getScore();
+            this.valid = true;
         }
-        this.tetromino = tetromino;
+        this.tetromino.from(tetromino);
         this.moveDelta = moveDelta;
         this.rotationDelta = rotationDelta;
         this.moveFinished = false;
         this.fallen = 0;
-        this.valid = true;
+        this.clever = false;
         return this;
     }
 
@@ -105,10 +98,12 @@ public final class MoveResult {
             this.y = result.getY();
             this.score = result.getScore();
         }
-        this.tetromino = tetromino;
+        if (tetromino != null) {
+            this.tetromino.from(tetromino);
+        }
         this.moveDelta = moveDelta;
         this.rotationDelta = rotationDelta;
-        this.moveFinished = moved;        
+        this.moveFinished = moved;
         this.cleverPoints = new LinkedList<Point>();
     }
 
@@ -116,15 +111,16 @@ public final class MoveResult {
     public int x;
     public int y;
     public double score;
-    public Tetromino tetromino;
+    public Tetromino tetromino = new Tetromino(this);
     public boolean moveFinished;
     public int fallen;
     public boolean clever;
 
     @Override
     public String toString() {
-        return "MoveResult [x=" + this.x + ", y=" + this.y + ", moveDelta=" + this.moveDelta + ", rotationDelta="
-                + this.rotationDelta + "]";
+        return "MoveResult [valid=" + valid + ", b=" + tetromino.block + ", x=" + this.x + ", y=" + this.y + ", r="
+                + rIdx + ", score=" + score + ", moveDelta=" + this.moveDelta + ", rotationDelta=" + this.rotationDelta
+                + ", clever=" + clever + "]";
     }
 
     public int moveDelta;
@@ -143,8 +139,7 @@ public final class MoveResult {
                     this.tetromino.rotation = this.tetromino.block.rotations[this.tetromino.rotationIdx];
 
                     for (int i = 0; i < this.rotationDelta; i++) {
-                        QQTetris.press(MoveType.CLOCKWISE);
-                        this.rotationDelta--;
+                        QQTetris.pressDirect(MoveType.CLOCKWISE);
                     }
                     this.rotationDelta = 0;
                     return;
@@ -155,15 +150,15 @@ public final class MoveResult {
                     this.tetromino.x += this.moveDelta;
                     for (int i = 0; i < moves; i++) {
                         if (moveDelta > 0) {
-                            QQTetris.press(MoveType.RIGHT);
+                            QQTetris.pressDirect(MoveType.RIGHT);
                         } else {
-                            QQTetris.press(MoveType.LEFT);
+                            QQTetris.pressDirect(MoveType.LEFT);
                         }
                     }
                     this.moveDelta = 0;
                     return;
                 }
-                QQTetris.press(MoveType.FALL);
+                QQTetris.pressDirect(MoveType.FALL);
                 moveFinished = true;
             }
         } catch (Exception e) {
@@ -171,11 +166,11 @@ public final class MoveResult {
         }
     }
 
-    public boolean hasMove() {
+    public final boolean hasMove() {
         return !moveFinished;
     }
 
-    public void doCleverMove() throws InterruptedException {
+    public final void doCleverMove() throws InterruptedException {
         if (this.rotationDelta > 0) {
             this.tetromino.rotationIdx += this.rotationDelta;
             if (this.tetromino.rotationIdx >= this.tetromino.block.rotations.length) {
@@ -184,7 +179,7 @@ public final class MoveResult {
             this.tetromino.rotation = this.tetromino.block.rotations[this.tetromino.rotationIdx];
 
             for (int i = 0; i < this.rotationDelta; i++) {
-                QQTetris.press(MoveType.CLOCKWISE);
+                QQTetris.pressDirect(MoveType.CLOCKWISE);
                 this.rotationDelta--;
             }
             this.rotationDelta = 0;
@@ -199,15 +194,15 @@ public final class MoveResult {
             final int moves = Math.abs(dx);
             for (int j = 0; j < moves; j++) {
                 if (dx > 0) {
-                    QQTetris.press(MoveType.RIGHT);
+                    QQTetris.pressDirect(MoveType.RIGHT);
                 } else {
-                    QQTetris.press(MoveType.LEFT);
+                    QQTetris.pressDirect(MoveType.LEFT);
                 }
             }
             final int dy = p.y - tY;
             for (int j = 0; j < dy; j++) {
                 if (fallen == 0) {
-                    QQTetris.press(MoveType.DOWN);
+                    QQTetris.pressDirect(MoveType.DOWN);
                 } else {
                     fallen--;
                 }

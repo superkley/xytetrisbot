@@ -8,16 +8,15 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
@@ -25,17 +24,19 @@ import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.JWindow;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 
+import com.melloware.jintellitype.HotkeyListener;
+import com.melloware.jintellitype.JIntellitype;
+
 // for qq tetris beta 3 build 40
 // TODO clever use of blue and red items
-public final class QQTetris extends JFrame {
+// TODO global hotkey
+// TODO +-
+public final class QQTetris extends JFrame implements HotkeyListener {
     public final static boolean DEBUG = false;
-    public final static boolean ANALYZE = false;
-    public final static boolean TEST = false;
     private static final String ACTION_SPEED_MINUS = "-";
     private static final String ACTION_SPEED_PLUS = "+";
     private static final long serialVersionUID = 5017677872022894209L;
@@ -66,11 +67,14 @@ public final class QQTetris extends JFrame {
     public static final int PiecesHeight = 21; // 336 / PieceSize;
     public static final BlockType[] EMPTY_BLOCKTYPE_ARRAY = new BlockType[0];
     private final static JButton btnStart;
+    private final static JButton btnSpeedPlus;
+    private final static JButton btnSpeedMinus;
+    private final static JTextField tfSpeedPct;
     private final static JButton btnScreenCapture;
-    private final static JComboBox cbStrategy;
+    private final static JComboBox<String> cbStrategy;
     public static final MoveCalculator calculator;
     public static final QQScreenCaptureThread captureScreenThread;
-    public static final QQCalculateMoveThread calculationThread;
+    public static final QQCalculationThread calculationThread;
     private static QQState state;
     private static StrategyType currentStrategy;
     private Container c;
@@ -82,25 +86,35 @@ public final class QQTetris extends JFrame {
     private static final KeyboardThread keyThread = new KeyboardThread();
 
     static {
-        keyThread.start();
-        // TODO: async calculator is buggy. check SyncAsyncTest.
-        if (Runtime.getRuntime().availableProcessors() > 1) {
-            calculator = new QQCalculatorAsync();
+        if (Runtime.getRuntime().availableProcessors() > 2) {
+            if (DEBUG) {
+                System.out.println("计算器：多轨");
+            }
+            calculator = new QQCalculatorSync();
+            // calculator = new QQCalculatorAsync();
         } else {
+            if (DEBUG) {
+                System.out.println("单轨");
+            }
             calculator = new QQCalculatorSync();
         }
         captureScreenThread = new QQScreenCaptureThread();
-        calculationThread = new QQCalculateMoveThread(calculator);
-        Font font = new Font("Monospaced", Font.PLAIN, 12);
+        calculationThread = new QQCalculationThread(calculator);
+        final Font font = new Font("Monospaced", Font.PLAIN, 12);
         btnStart = new JButton("开始");
         btnScreenCapture = new JButton("帮助");
         btnScreenCapture.setFont(font);
         btnStart.setFont(font);
-        cbStrategy = new JComboBox(new String[] { "正常", "群杀", "长生", "聚宝", "忍者" });
+        cbStrategy = new JComboBox<String>(new String[] { "正常", "群杀", "长生", "聚宝", "忍者" });
         cbStrategy.setFont(font);
+        btnSpeedPlus = new JButton(ACTION_SPEED_PLUS);
+        btnSpeedMinus = new JButton(ACTION_SPEED_MINUS);
+        tfSpeedPct = new JTextField(calculationThread.getSpeedPct());
+        tfSpeedPct.setFont(font);
+        btnSpeedPlus.setFont(font);
+        btnSpeedMinus.setFont(font);
     }
 
-    @SuppressWarnings("unused")
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException,
             IllegalAccessException, UnsupportedLookAndFeelException {
         new QQTetris();
@@ -108,7 +122,7 @@ public final class QQTetris extends JFrame {
 
     private QQTetris() throws ClassNotFoundException, InstantiationException, IllegalAccessException,
             UnsupportedLookAndFeelException {
-        super("QQ俄罗斯方块机器人（兼容QQTetris beta3 build40版）");
+        super("QQTetris机器人（兼容 beta3 build40版）");
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         setAlwaysOnTop(true);
         setLocationByPlatform(true);
@@ -117,7 +131,7 @@ public final class QQTetris extends JFrame {
         btnScreenCapture.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                if (ANALYZE) {
+                if (DEBUG) {
                     Calendar cal = Calendar.getInstance();
                     QQDebug.save(
                             QQRobot.getScreen(),
@@ -125,7 +139,7 @@ public final class QQTetris extends JFrame {
                                     + cal.get(Calendar.DAY_OF_MONTH) + "-" + padding(cal.get(Calendar.HOUR_OF_DAY))
                                     + padding(cal.get(Calendar.MINUTE)) + padding(cal.get(Calendar.SECOND)));
                 }
-                QQTetris.this.about.setVisible(true);
+                QQTetris.about.setVisible(true);
                 activate();
             }
 
@@ -133,61 +147,100 @@ public final class QQTetris extends JFrame {
                 return (i < 10) ? "0" + i : String.valueOf(i);
             }
         });
-        
-        this.currentStrategy = StrategyType.NORMAL;
-        btnStart.setToolTipText("请先关闭其它窗口然后打开QQ火拼俄罗斯");
+
+        QQTetris.currentStrategy = StrategyType.NORMAL;
+        btnStart.setToolTipText("请先关闭其它窗口然后打开QQ火拼俄罗斯（win+alt+k）");
         btnStart.addActionListener(new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent ev) {
-                if (!QQTetris.this.captureScreenThread.isRunning()) {
-                    startAI();
-                } else {
-                    stopAI();
-                }
-                if (QQTetris.this.captureScreenThread.isRunning()) {
-                    QQTetris.this.btnStart.setText("暂停");
-                } else {
-                    QQTetris.this.btnStart.setText("开始");
-                }
+                startStopAction();
             }
+
         });
         ActionListener strategyListener = new ActionListener() {
+            @Override
             public void actionPerformed(ActionEvent evt) {
-                switch (QQTetris.this.cbStrategy.getSelectedIndex()) {
+                switch (QQTetris.cbStrategy.getSelectedIndex()) {
                 case 0:
-                    QQTetris.this.currentStrategy = StrategyType.NORMAL;
+                    QQTetris.currentStrategy = StrategyType.NORMAL;
                     break;
                 case 1:
-                    QQTetris.this.currentStrategy = StrategyType.SAVE_KILL;
+                    QQTetris.currentStrategy = StrategyType.SAVE_KILL;
                     break;
                 case 2:
-                    QQTetris.this.currentStrategy = StrategyType.LONG_LIFE;
+                    QQTetris.currentStrategy = StrategyType.LONG_LIFE;
                     break;
                 case 3:
-                    QQTetris.this.currentStrategy = StrategyType.MORE_TREASURE;
+                    QQTetris.currentStrategy = StrategyType.MORE_TREASURE;
                     break;
                 case 4:
-                    QQTetris.this.currentStrategy = StrategyType.KILL_ALL;
+                    QQTetris.currentStrategy = StrategyType.KILL_ALL;
                     break;
                 }
-                System.out.println("Changed strategy to: " + QQTetris.this.currentStrategy);
+                if (DEBUG) {
+                    System.out.println("策略：" + QQTetris.currentStrategy);
+                }
                 activate();
             }
         };
         cbStrategy.addActionListener(strategyListener);
         setState(QQState.STOPPED);
+
+        btnSpeedPlus.setToolTipText("加速（win+alt+上）");
+        btnSpeedPlus.setActionCommand(ACTION_SPEED_PLUS);
+        btnSpeedMinus.setToolTipText("减速（win+alt+下）");
+        btnSpeedMinus.setActionCommand(ACTION_SPEED_MINUS);
+        ActionListener speedActionListener = new ActionListener() {
+            public void actionPerformed(ActionEvent ev) {
+                if (ev.getActionCommand() == ACTION_SPEED_MINUS) {
+                    calculationThread.decreaseSpeed();
+                } else {
+                    calculationThread.increaseSpeed();
+                }
+                tfSpeedPct.setText(calculationThread.getSpeedPct());
+                activate();
+            }
+        };
+        tfSpeedPct.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                QQLevel level = calculator.getLevel();
+                if (level == QQLevel.HARD) {
+                    level = QQLevel.MEDIUM;
+                } else if (level == QQLevel.MEDIUM) {
+                    level = QQLevel.EASY;
+                } else {
+                    level = QQLevel.HARD;
+                }
+                calculator.setLevel(level);
+                tfSpeedPct.setBackground(level.color);
+                activate();
+            }
+        });
+        btnSpeedPlus.addActionListener(speedActionListener);
+        btnSpeedMinus.addActionListener(speedActionListener);
+
+        QQTetris.captureScreenThread.start();
+        QQTetris.calculationThread.start();
+        QQTetris.keyThread.start();
+
+        addGlobalHotkeys();
+
         this.c = getContentPane();
         this.c.setBackground(Color.lightGray);
         this.c.setLayout(new FlowLayout());
         this.c.add(btnStart);
         this.c.add(cbStrategy);
-        this.c.add(this.btnScreenCapture);
+        this.c.add(tfSpeedPct);
+        this.c.add(btnSpeedPlus);
+        this.c.add(btnSpeedMinus);
+        this.c.add(QQTetris.btnScreenCapture);
         this.c.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (QQTetris.this.autoBlue) {
-                    QQTetris.this.autoBlue = false;
+                if (QQTetris.autoBlue) {
+                    QQTetris.autoBlue = false;
                 } else {
-                    QQTetris.this.autoBlue = true;
+                    QQTetris.autoBlue = true;
                 }
                 updateContainerColor();
                 activate();
@@ -198,12 +251,35 @@ public final class QQTetris extends JFrame {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.pack();
         this.setVisible(true);
-        this.captureScreenThread.start();
-        this.calculationThread.start();
+    }
+
+    private void startStopAction() {
+        if (!QQTetris.captureScreenThread.isRunning()) {
+            startAI();
+        } else {
+            stopAI();
+        }
+        if (QQTetris.captureScreenThread.isRunning()) {
+            QQTetris.btnStart.setText("暂停");
+        } else {
+            QQTetris.btnStart.setText("开始");
+        }
+    }
+
+    private void addGlobalHotkeys() {
+        try {
+            JIntellitype.getInstance().registerHotKey(1, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_K);
+            JIntellitype.getInstance().registerHotKey(2, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_UP);
+            JIntellitype.getInstance().registerHotKey(3, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_DOWN);
+            JIntellitype.getInstance().registerHotKey(4, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_L);
+            JIntellitype.getInstance().addHotKeyListener(this);
+        } catch (Throwable t) {
+            System.err.println(t.toString());
+        }
     }
 
     void updateContainerColor() {
-        if (this.autoBlue) {
+        if (QQTetris.autoBlue) {
             this.c.setBackground(COLOR_AUTO_BLUE);
         } else {
             this.c.setBackground(Color.lightGray);
@@ -211,11 +287,11 @@ public final class QQTetris extends JFrame {
     }
 
     void startAI() {
-        this.captureScreenThread.go();
+        QQTetris.captureScreenThread.go();
     }
 
     void stopAI() {
-        this.captureScreenThread.pause();
+        QQTetris.captureScreenThread.pause();
     }
 
     public static void setState(final QQState qqState) {
@@ -235,11 +311,11 @@ public final class QQTetris extends JFrame {
     }
 
     public static void activate() {
-        if (!ANALYZE && state == QQState.PLAYING) {
+        if (state == QQState.PLAYING) {
             try {
                 QQRobot.click(QQCoord.x + MyCoordX, QQCoord.y + MyCoordY);
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                // e.printStackTrace();
             }
         }
     }
@@ -276,6 +352,47 @@ public final class QQTetris extends JFrame {
 
     public static final void press(final MoveType... move) {
         keyThread.putMoves(move);
+    }
+
+    @Override
+    public void onHotKey(int identifier) {
+        switch (identifier) {
+        case 1:
+            startStopAction();
+            break;
+        case 2:
+            calculationThread.increaseSpeed();
+            break;
+        case 3:
+            calculationThread.decreaseSpeed();
+            break;
+        case 4:
+            if (QQTetris.autoBlue) {
+                QQTetris.autoBlue = false;
+            } else {
+                QQTetris.autoBlue = true;
+            }
+            break;
+        default:
+            break;
+        }
+        updateContainerColor();
+        tfSpeedPct.setText(calculationThread.getSpeedPct());
+        activate();
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        JIntellitype.getInstance().cleanUp();
+    }
+
+    public static final void pressDirect(final MoveType m) {
+        activate();
+        try {
+            QQRobot.press(m);
+        } catch (InterruptedException e) {
+            // errr
+        }
     }
 
 }

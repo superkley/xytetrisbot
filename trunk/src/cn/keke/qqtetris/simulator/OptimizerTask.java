@@ -1,7 +1,6 @@
 package cn.keke.qqtetris.simulator;
 
 import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import cn.keke.qqtetris.StrategyType;

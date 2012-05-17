@@ -6,14 +6,14 @@ import cn.keke.qqtetris.BoardUtils;
 import cn.keke.qqtetris.CurrentData;
 import cn.keke.qqtetris.MoveCalculator;
 import cn.keke.qqtetris.MoveResult;
-import cn.keke.qqtetris.QQCalculatorSync;
+import cn.keke.qqtetris.QQCalculatorAsync;
 import cn.keke.qqtetris.QQDebug;
 import cn.keke.qqtetris.StopWatch;
 import cn.keke.qqtetris.StrategyType;
 import cn.keke.qqtetris.Tetromino;
 
-public class BestMoveTest extends TestCase {
-    private MoveCalculator calculator = new QQCalculatorSync();
+public class BestMoveAsyncTest extends TestCase {
+    private MoveCalculator calculator = new QQCalculatorAsync();
     private final static StopWatch STOPPER = new StopWatch("test");
 
     // private MoveCalculator calculator = new QQCalculatorAsync();
@@ -100,8 +100,7 @@ public class BestMoveTest extends TestCase {
         BoardUtils.mergeMoveResult(CurrentData.CALCULATED.board, CurrentData.CALCULATED.tetromino,
                 CurrentData.CALCULATED.tetromino.move);
         QQDebug.printBoard(CurrentData.CALCULATED.board);
-        assertEquals(5, CurrentData.CALCULATED.tetromino.move.moveDelta);
-        
+
         CurrentData.CALCULATED.reset();
         CurrentData.CALCULATED.tetromino.set(BlockType.S, 0, 0, 0);
         CurrentData.CALCULATED.nextBlocks[0] = CurrentData.CALCULATED.tetromino.block;

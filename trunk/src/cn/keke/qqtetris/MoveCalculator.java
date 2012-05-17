@@ -1,8 +1,7 @@
 package cn.keke.qqtetris;
 
 import java.awt.Point;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.LinkedList;
 
 /**
  * <pre>
@@ -14,10 +13,10 @@ import java.util.Arrays;
  * </pre>
  */
 public abstract class MoveCalculator {
-    public static final MoveResult NO_MOVE = new MoveResult(null, null, 0, 0, true);
     public static final double NO_RESULT_SCORE = Double.NEGATIVE_INFINITY;
 
-    public abstract MoveResult findBestMove(QQStats stats, StrategyType strategy, double[] strategyAttrs);
+    public abstract void findBestMove(final boolean[] board, final Tetromino tetromino, final BlockType[] futures,
+            final QQStats stats, final StrategyType strategy, final double[] strategyAttrs);
 
     public static final long SLOW_MOVE_MILLIS = 1000;
 
@@ -25,23 +24,27 @@ public abstract class MoveCalculator {
 
     private QQLevel level = QQLevel.HARD;
 
-    public final BlockType[] initializeNextBlocks(BlockType[] blocks, StrategyType strategy, QQStats stats) {
-        int l = blocks.length;
-        if (l <= 1) {
-            return blocks;
-        } else if (this.getLevel() == QQLevel.EASY) {
-            return new BlockType[] { blocks[0] };
-        } else if (strategy.fastInDanger && stats.highest > QQTetris.PiecesHeight - QQTetris.BlockDrawSize * 3) {
-            if (this.slowMoveDetected && l > 2) {
-                return Arrays.copyOf(blocks, 2);
-            } else {
-                return blocks;
-            }
-        } else if (this.getLevel() == QQLevel.MEDIUM && l > 2) {
-            return Arrays.copyOf(blocks, 2);
-        } else {
-            return blocks;
+    public final int initializeNextBlocks(final BlockType[] blocks, final StrategyType strategy, final QQStats stats) {
+        if (this.getLevel() == QQLevel.EASY) {
+            blocks[1] = null;
+        } else if (this.getLevel() == QQLevel.MEDIUM) {
+            blocks[2] = null;
+        } else if (this.slowMoveDetected && strategy.fastInDanger && stats.isInDanger()) {
+            blocks[2] = null;
         }
+        return findNextBlocksLimit(blocks);
+    }
+
+    public static final int findNextBlocksLimit(final BlockType[] blocks) {
+        int i = 0;
+        for (BlockType t : blocks) {
+            if (t != null) {
+                i++;
+            } else {
+                break;
+            }
+        }
+        return i;
     }
 
     public void setLevel(QQLevel level) {
@@ -55,23 +58,22 @@ public abstract class MoveCalculator {
 
     public static final MoveResult createMove(TransformationResult bestResult, Tetromino t) {
         int dx = bestResult.getX() - t.x;
-        int didx = 0;
+        int ridx = 0;
         int rDiff = bestResult.getRotationIdx() - t.rotationIdx;
         if (rDiff > 0) {
-            didx = rDiff;
+            ridx = rDiff;
         } else if (rDiff < 0) {
-            didx = t.block.rotations.length + rDiff;
+            ridx = t.block.rotations.length + rDiff;
         }
-        t.move.clever = false;
-        return t.move.set(bestResult, t, didx, dx);
+        return t.move.set(bestResult, t, ridx, dx);
     }
 
-    public static final ArrayList<Point> findCleverMove(boolean[] board, BlockRotation br, int x, int y) {
+    public static final LinkedList<Point> findCleverMove(boolean[] board, BlockRotation br, int x, int y) {
         int h = br.height;
-        ArrayList<Point> list;
+        LinkedList<Point> list;
         for (int j = QQTetris.PiecesHeight - h - br.freeTop; j > y; j--) {
             if (BoardUtils.fitFormInner(board, br, x, j)) {
-                list = new ArrayList<Point>(5);
+                list = new LinkedList<Point>();
                 list.add(new Point(x, j));
                 int q = y - h;
                 // find left
@@ -100,7 +102,7 @@ public abstract class MoveCalculator {
         return null;
     }
 
-    public static final MoveResult createCleverMove(Tetromino t, int rIdx, ArrayList<Point> list, double score) {
+    public static final MoveResult createCleverMove(Tetromino t, int rIdx, LinkedList<Point> list, double score) {
         int didx = 0;
         int rDiff = rIdx - t.rotationIdx;
         if (rDiff > 0) {
@@ -108,7 +110,6 @@ public abstract class MoveCalculator {
         } else if (rDiff < 0) {
             didx = t.block.rotations.length + rDiff;
         }
-        t.move.clever = true;
         return t.move.set(t, rIdx, didx, list, score);
     }
 
@@ -129,5 +130,21 @@ public abstract class MoveCalculator {
         move.fallen = fallen;
     }
 
+    protected boolean cancelled;
+
     public abstract void cancel();
+
+    public boolean start() {
+        this.cancelled = false;
+        CurrentData.CALCULATED.tetromino.move.reset();
+        final StrategyType strategy = QQTetris.getStrategy();
+        findBestMove(CurrentData.CALCULATED.board, CurrentData.CALCULATED.tetromino, CurrentData.CALCULATED.nextBlocks,
+                CurrentData.CALCULATED.stats, strategy, strategy.getAttrs(CurrentData.CALCULATED.stats.isInDanger()));
+        return CurrentData.CALCULATED.tetromino.move.isValid();
+    }
+
+    public final MoveResult findBestMove(final CurrentData data, final StrategyType strategy, final double[] attrs) {
+        findBestMove(data.board, data.tetromino, data.nextBlocks, data.stats, strategy, attrs);
+        return data.tetromino.move;
+    }
 }

@@ -1,7 +1,5 @@
 package cn.keke.qqtetris;
 
-import static cn.keke.qqtetris.QQTetris.ANALYZE;
-
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -13,16 +11,16 @@ import java.util.concurrent.locks.ReentrantLock;
  * 5. Sleep
  * </pre>
  */
-public class QQScreenCaptureThread extends Thread {
+public final class QQScreenCaptureThread extends Thread {
     private boolean started = false;
     // no atomic for performance
     private boolean running = false;
-    private final static StopWatch STOPPER = new StopWatch("run");
     ReentrantLock runningLock = new ReentrantLock();
-    private WorkflowStep step = WorkflowStep.DETECT_WINDOW;
+    WorkflowStep step = WorkflowStep.DETECT_WINDOW;
+    private WorkflowStep nextStep;
 
     public QQScreenCaptureThread() {
-        super("QQThread");
+        super("QQScreenCaptureThread");
         setPriority(Thread.NORM_PRIORITY);
         // this.calculator = QQCalculatorAsync.INSTANCE;
         // this.calculator = QQCalculatorSync.INSTANCE;
@@ -30,10 +28,29 @@ public class QQScreenCaptureThread extends Thread {
 
     @Override
     public void run() {
-        if (this.running) {
-            step = step.execute();
+        while (true) {
+            if (this.running) {
+                checkNextStep();
+                // final WorkflowStep oldStep = this.step;
+                step = step.execute();
+                // if (step != oldStep) {
+                // System.out.println("步：" + this.step);
+                // }
+            } else {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    // ignore
+                }
+            }
         }
-        QQTetris.executor.execute(this);
+    }
+
+    private final void checkNextStep() {
+        if (nextStep != null) {
+            step = nextStep;
+            nextStep = null;
+        }
     }
 
     public void pause() {
@@ -50,18 +67,18 @@ public class QQScreenCaptureThread extends Thread {
     }
 
     public void go() {
-        if (this.runningLock.tryLock()) {
-            try {
-                // System.out.println("go: " + System.currentTimeMillis());
-                QQTetris.setState(QQState.WAITING);
-                this.step = WorkflowStep.DETECT_WINDOW;
-                this.setStarted(false);
-                this.running = true;
-                if (ANALYZE) {
-                    STOPPER.printTime("go");
+        if (!this.running) {
+            if (this.runningLock.tryLock()) {
+                try {
+                    // System.out.println("go: " + System.currentTimeMillis());
+                    QQTetris.setState(QQState.WAITING);
+                    this.nextStep = WorkflowStep.DETECT_WINDOW;
+                    // System.out.println("步：" + this.step);
+                    this.setStarted(false);
+                    this.running = true;
+                } finally {
+                    this.runningLock.unlock();
                 }
-            } finally {
-                this.runningLock.unlock();
             }
         }
     }
@@ -85,4 +102,23 @@ public class QQScreenCaptureThread extends Thread {
         QQTetris.setState((!successful) ? QQState.WARNING : (this.started ? QQState.PLAYING : QQState.WAITING));
     }
 
+    public void followMove() {
+        if (CurrentData.CALCULATED.tetromino.move.isValid()) {
+            // System.out.println("结果：" + CurrentData.CALCULATED.tetromino.move);
+            this.nextStep = WorkflowStep.FOLLOW_MOVE;
+            // System.out.println("步：" + this.nextStep);
+        } else {
+            // System.err.println("无结果：" + this.step + "，" + CurrentData.CALCULATED.tetromino.move);
+            this.nextStep = WorkflowStep.INITIAL_BOARD;
+            // System.out.println("步：" + this.nextStep);
+        }
+
+    }
+
+    public void onFailure() {
+        synchronized (this) {
+            this.nextStep = this.step.fail();
+            // System.out.println("步：" + this.nextStep);
+        }
+    }
 }

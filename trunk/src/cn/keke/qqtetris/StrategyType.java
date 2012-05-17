@@ -1,7 +1,6 @@
 package cn.keke.qqtetris;
 
 import static cn.keke.qqtetris.QQTetris.PiecesHeight;
-
 import cn.keke.qqtetris.simulator.StrategyOptimizer;
 
 public enum StrategyType {

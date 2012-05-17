@@ -6,7 +6,7 @@ public class Tetromino {
     public int rotationIdx;
     public int x;
     public int y;
-    public MoveResult move =MoveCalculator.NO_MOVE;
+    public MoveResult move;
 
     public Tetromino(BlockType block, int rotationIdx, int x, int y) {
         super();
@@ -26,6 +26,11 @@ public class Tetromino {
     }
 
     public Tetromino() {
+        this.move = new MoveResult(null, null, 0, 0, false);
+    }
+    
+    public Tetromino(MoveResult move) {
+        this.move = move;
     }
 
     @Override
@@ -52,7 +57,13 @@ public class Tetromino {
         this.rotation = o.rotation;
         this.rotationIdx = o.rotationIdx;
         this.x = o.x;
-        this.y = o.y;        
+        this.y = o.y;
+    }
+    
+    public static final Tetromino from(final Tetromino o, final MoveResult move) {
+        final Tetromino t = new Tetromino(move);
+        t.set(o.block, o.rotationIdx, o.x, o.y);
+        return t;
     }
 
 }

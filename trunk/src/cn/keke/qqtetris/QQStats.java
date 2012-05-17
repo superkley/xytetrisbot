@@ -1,7 +1,5 @@
 package cn.keke.qqtetris;
 
-import java.util.Arrays;
-
 public class QQStats {
     private final static StopWatch STOPPER = new StopWatch("stats");
     private CurrentData data;
@@ -14,11 +12,8 @@ public class QQStats {
     public boolean dead;
     private boolean calculated;
 
-    private boolean calculate() {
+    boolean calculate() {
         if (!calculated) {
-            if (QQTetris.ANALYZE) {
-                STOPPER.start();
-            }
             if (data.tetromino.isValid()) {
                 this.heights = new int[QQTetris.PiecesWidth];
                 final int[] stats = BoardUtils.calcDetailedBoardStats(data.board, this.heights);
@@ -34,9 +29,6 @@ public class QQStats {
                 }
                 calculated = true;
                 return true;
-            }
-            if (QQTetris.ANALYZE) {
-                STOPPER.printTime("construct");
             }
         }
         return false;
@@ -65,6 +57,11 @@ public class QQStats {
 
     public void reset() {
         hash = Integer.MIN_VALUE;
+        this.calculated = false;
+    }
+
+    public void setCalculate(boolean b) {
+        this.calculated = false;
     }
 
 }
