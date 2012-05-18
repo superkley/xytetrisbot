@@ -56,10 +56,10 @@ public abstract class MoveCalculator {
 
     }
 
-    public static final MoveResult createMove(TransformationResult bestResult, Tetromino t) {
-        int dx = bestResult.getX() - t.x;
+    public static final MoveResult createMove(final TransformationResult bestResult, final Tetromino t) {
+        final int dx = bestResult.getX() - t.x;
         int ridx = 0;
-        int rDiff = bestResult.getRotationIdx() - t.rotationIdx;
+        final int rDiff = bestResult.getRotationIdx() - t.rotationIdx;
         if (rDiff > 0) {
             ridx = rDiff;
         } else if (rDiff < 0) {

@@ -1,7 +1,5 @@
 package cn.keke.qqtetris;
 
-import java.util.Calendar;
-
 import cn.keke.qqtetris.exceptions.NoFuturesFoundException;
 import cn.keke.qqtetris.exceptions.NoTetrominoFoundException;
 import cn.keke.qqtetris.exceptions.UnexpectedBoardChangeException;
@@ -146,7 +144,7 @@ public enum WorkflowStep {
                 }
             }
             CurrentData.REAL.reset();
-            QQRobot.findTetromino(RGB_MY_SPACE, CurrentData.REAL.tetromino, CurrentData.REAL.nextBlocks, 1);
+            QQRobot.findTetromino(RGB_MY_SPACE, CurrentData.REAL.tetromino, CurrentData.REAL.nextBlocks, 5);
             QQRobot.findFutures(RGB_MY_SPACE, CurrentData.REAL.nextBlocks);
             boolean valid = false;
             if (CurrentData.REAL.tetromino.isValid()) {

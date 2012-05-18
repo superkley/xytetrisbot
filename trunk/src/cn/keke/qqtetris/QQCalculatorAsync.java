@@ -20,23 +20,25 @@ public class QQCalculatorAsync extends MoveCalculator {
             Executors.defaultThreadFactory(), new ThreadPoolExecutor.DiscardOldestPolicy());
     private static final long SLEEP_MAX = 1000;
 
+    final TransformationResult[] predictedResults = new TransformationResult[PiecesWidth + BlockDrawSize];
     private int timeouts;
     private int recovers;
 
+    AtomicInteger taskCounter = new AtomicInteger(0);
     public QQCalculatorAsync() {
-        
+        for (int i = 0; i < predictedResults.length; i++) {
+            predictedResults[i] = new TransformationResult();
+        }
     }
 
     @Override
     public void findBestMove(final boolean[] boardData, final Tetromino t, final BlockType[] nextBlocks, QQStats stats,
-            StrategyType strategy, double[] strategyAttrs) {        
-        System.out.println("start");
+            StrategyType strategy, double[] strategyAttrs) {
         initializeNextBlocks(nextBlocks, strategy, stats);
-        final TransformationResult[] predictedResults = new TransformationResult[PiecesWidth + BlockDrawSize];
         for (int i = 0; i < predictedResults.length; i++) {
-            predictedResults[i] = new TransformationResult();
+            predictedResults[i].set(t.block);
         }
-        AtomicInteger taskCounter = new AtomicInteger(0);
+        taskCounter.set(0);
         final int[] piecesHeight = BoardUtils.calcBoardHeight(boardData);
         // System.out.println("orgin heights: " + Arrays.toString(piecesHeight));
         final TransformationTask task = new TransformationTask(this, predictedResults, boardData, piecesHeight,
@@ -49,14 +51,11 @@ public class QQCalculatorAsync extends MoveCalculator {
             try {
                 success = lock.tryAcquire(SLEEP_MAX, TimeUnit.MILLISECONDS);
                 if (cancelled) {
-                    System.out.println("cancelled");
                     return;
                 } else if (!success) {
-                    System.out.println("timeout");
                     this.timeouts++;
                     System.err.println("Computer too slow for calculation!");
                 } else {
-                    System.out.println("ok");
                     if (this.timeouts > 0) {
                         this.recovers++;
                         if (this.recovers < 5) {
@@ -88,8 +87,11 @@ public class QQCalculatorAsync extends MoveCalculator {
                 // calculate MoveResult
                 if (bestResult != null) {
                     if (bestResult.getCleverPoints() == null) {
+                        System.out.println("normal: " + bestResult);
                         createMove(bestResult, t);
                     } else {
+
+                        System.out.println("clever: " + bestResult);
                         createCleverMove(t, bestResult.getRotationIdx(), bestResult.getCleverPoints(),
                                 bestResult.getScore());
                     }
@@ -97,7 +99,7 @@ public class QQCalculatorAsync extends MoveCalculator {
             }
         }
     }
-    
+
     @Override
     public void cancel() {
         this.cancelled = true;

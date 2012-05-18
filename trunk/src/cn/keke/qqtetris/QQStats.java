@@ -12,7 +12,7 @@ public class QQStats {
     public boolean dead;
     private boolean calculated;
 
-    boolean calculate() {
+    public boolean calculate() {
         if (!calculated) {
             if (data.tetromino.isValid()) {
                 this.heights = new int[QQTetris.PiecesWidth];

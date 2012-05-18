@@ -90,8 +90,8 @@ public final class QQTetris extends JFrame implements HotkeyListener {
             if (DEBUG) {
                 System.out.println("计算器：多轨");
             }
-            calculator = new QQCalculatorSync();
-            // calculator = new QQCalculatorAsync();
+            // calculator = new QQCalculatorSync();
+            calculator = new QQCalculatorAsync();
         } else {
             if (DEBUG) {
                 System.out.println("单轨");
