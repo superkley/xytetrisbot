@@ -91,7 +91,7 @@ public final class TransformationResult {
 
     @Override
     public String toString() {
-        return "TR [t=" + this.block.name() + ", rIdx=" + this.rotationIdx + ", x=" + this.x + ", y=" + this.y
+        return "TR [t=" + this.block + ", rIdx=" + this.rotationIdx + ", x=" + this.x + ", y=" + this.y
                 + ", score=" + this.score + ", clever=" + this.cleverPoints + "]";
     }
 
