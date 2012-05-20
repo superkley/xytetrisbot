@@ -136,6 +136,7 @@ public final class MoveResult {
 
     public void doMove() {
         try {
+            QQTetris.activate();
             if (System.currentTimeMillis() - ts > 2000) {
                 throw new MoveExpiredException("Move expired!");
             }

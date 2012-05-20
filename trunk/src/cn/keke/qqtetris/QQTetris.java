@@ -20,6 +20,7 @@ import java.util.concurrent.Executors;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -27,6 +28,8 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import com.melloware.jintellitype.HotkeyListener;
 import com.melloware.jintellitype.JIntellitype;
@@ -71,7 +74,8 @@ public final class QQTetris extends JFrame implements HotkeyListener {
     private final static JButton btnSpeedMinus;
     private final static JTextField tfSpeedPct;
     private final static JButton btnScreenCapture;
-    private final static JComboBox<String> cbStrategy;
+    private final static JCheckBox chkClever;
+    private final static JComboBox cbStrategy;
     public static final MoveCalculator calculator;
     public static final QQScreenCaptureThread captureScreenThread;
     public static final QQCalculationThread calculationThread;
@@ -82,8 +86,8 @@ public final class QQTetris extends JFrame implements HotkeyListener {
     private static boolean autoBlue = true;
     private static final JFrame about = createAbout();
     public static ExecutorService executor = Executors.newSingleThreadExecutor();
-    public static boolean dirty;
-    private static final KeyboardThread keyThread = new KeyboardThread();
+    // private static final KeyboardThread keyThread = new KeyboardThread();
+    public static boolean cleverMode = false;
 
     static {
         if (Runtime.getRuntime().availableProcessors() > 2) {
@@ -105,7 +109,7 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         btnScreenCapture = new JButton("帮助");
         btnScreenCapture.setFont(font);
         btnStart.setFont(font);
-        cbStrategy = new JComboBox<String>(new String[] { "正常", "群杀", "长生", "聚宝", "忍者" });
+        cbStrategy = new JComboBox(new String[] { "正常", "群杀", "长生", "聚宝", "忍者" });
         cbStrategy.setFont(font);
         btnSpeedPlus = new JButton(ACTION_SPEED_PLUS);
         btnSpeedMinus = new JButton(ACTION_SPEED_MINUS);
@@ -113,23 +117,26 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         tfSpeedPct.setFont(font);
         btnSpeedPlus.setFont(font);
         btnSpeedMinus.setFont(font);
+        chkClever = new JCheckBox("智能（测试）");
+        chkClever.setFont(font);
+        chkClever.setOpaque(false);
     }
 
     public static void main(String[] args) throws ClassNotFoundException, InstantiationException,
-            IllegalAccessException, UnsupportedLookAndFeelException {
+            IllegalAccessException, UnsupportedLookAndFeelException, IOException {
         new QQTetris();
     }
 
     private QQTetris() throws ClassNotFoundException, InstantiationException, IllegalAccessException,
-            UnsupportedLookAndFeelException {
+            UnsupportedLookAndFeelException, IOException {
         super("QQTetris机器人（兼容 beta3 build40版）");
+        setIconImage(ImageIO.read(getClass().getResource("/xytetris.png")));
         UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         setAlwaysOnTop(true);
         setLocationByPlatform(true);
         // this.calculator = new QQCalculatorSync();
         btnScreenCapture.setToolTipText("使用说明，软件介绍");
         btnScreenCapture.addActionListener(new ActionListener() {
-            @Override
             public void actionPerformed(ActionEvent e) {
                 if (DEBUG) {
                     Calendar cal = Calendar.getInstance();
@@ -151,14 +158,14 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         QQTetris.currentStrategy = StrategyType.NORMAL;
         btnStart.setToolTipText("请先关闭其它窗口然后打开QQ火拼俄罗斯（win+alt+k）");
         btnStart.addActionListener(new ActionListener() {
-            @Override
+
             public void actionPerformed(ActionEvent ev) {
                 startStopAction();
             }
 
         });
         ActionListener strategyListener = new ActionListener() {
-            @Override
+
             public void actionPerformed(ActionEvent evt) {
                 switch (QQTetris.cbStrategy.getSelectedIndex()) {
                 case 0:
@@ -219,9 +226,15 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         btnSpeedPlus.addActionListener(speedActionListener);
         btnSpeedMinus.addActionListener(speedActionListener);
 
+        chkClever.addChangeListener(new ChangeListener() {
+
+            public void stateChanged(ChangeEvent e) {
+                QQTetris.cleverMode = chkClever.isSelected();
+            }
+        });
         QQTetris.captureScreenThread.start();
         QQTetris.calculationThread.start();
-        QQTetris.keyThread.start();
+        // QQTetris.keyThread.start();
 
         addGlobalHotkeys();
 
@@ -233,9 +246,10 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         this.c.add(tfSpeedPct);
         this.c.add(btnSpeedPlus);
         this.c.add(btnSpeedMinus);
+        this.c.add(chkClever);
         this.c.add(QQTetris.btnScreenCapture);
         this.c.addMouseListener(new MouseAdapter() {
-            @Override
+
             public void mouseClicked(MouseEvent e) {
                 if (QQTetris.autoBlue) {
                     QQTetris.autoBlue = false;
@@ -298,7 +312,7 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         if (state != qqState) {
             state = qqState;
             SwingUtilities.invokeLater(new Runnable() {
-                @Override
+
                 public void run() {
                     btnStart.setBackground(qqState.color);
                 }
@@ -329,7 +343,6 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         aboutFrame.add(new JPanel() {
             private static final long serialVersionUID = -4970372227279706816L;
 
-            @Override
             public void paintComponent(Graphics g) {
                 BufferedImage image;
                 try {
@@ -350,11 +363,10 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         return aboutFrame;
     }
 
-    public static final void press(final MoveType... move) {
-        keyThread.putMoves(move);
-    }
+    // public static final void press(final MoveType... move) {
+    // keyThread.putMoves(move);
+    // }
 
-    @Override
     public void onHotKey(int identifier) {
         switch (identifier) {
         case 1:
@@ -381,13 +393,11 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         activate();
     }
 
-    @Override
     protected void finalize() throws Throwable {
         JIntellitype.getInstance().cleanUp();
     }
 
     public static final void pressDirect(final MoveType m) {
-        activate();
         try {
             QQRobot.press(m);
         } catch (InterruptedException e) {

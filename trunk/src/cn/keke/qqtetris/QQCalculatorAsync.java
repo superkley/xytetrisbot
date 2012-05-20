@@ -54,7 +54,7 @@ public class QQCalculatorAsync extends MoveCalculator {
                     return;
                 } else if (!success) {
                     this.timeouts++;
-                    System.err.println("Computer too slow for calculation!");
+                    System.err.println("电脑速度太慢！");
                 } else {
                     if (this.timeouts > 0) {
                         this.recovers++;
@@ -87,11 +87,10 @@ public class QQCalculatorAsync extends MoveCalculator {
                 // calculate MoveResult
                 if (bestResult != null) {
                     if (bestResult.getCleverPoints() == null) {
-                        System.out.println("normal: " + bestResult);
+                        // System.out.println("normal: " + bestResult);
                         createMove(bestResult, t);
                     } else {
-
-                        System.out.println("clever: " + bestResult);
+                        // System.out.println("clever: " + bestResult);
                         createCleverMove(t, bestResult.getRotationIdx(), bestResult.getCleverPoints(),
                                 bestResult.getScore());
                     }

@@ -36,6 +36,7 @@ import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.awt.peer.RobotPeer;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import sun.awt.ComponentFactory;
 import cn.keke.qqtetris.exceptions.BoardNotReadyException;
@@ -263,43 +264,41 @@ public class QQRobot {
         return false;
     }
 
-    private static int[] BUFFER_makeBoardStats = new int[RECT_MY.width * RECT_MY.height];
-
-    private static final boolean[] BUFFER_doAutoBlue = new boolean[QQTetris.PiecesWidth];
-
-    public static final void doAutoBlue() {
+    public static final boolean doAutoBlue(final int[] rgbMySpace) {
+        final boolean[] autoBlue = new boolean[QQTetris.PiecesWidth];
         int bluesCounter = 0;
         for (int x = QQTetris.BoardCoordX + QQTetris.PieceSize / 2, i = 0; x < QQTetris.MyAreaWidth; x += QQTetris.PieceSize, i++) {
-            final int c = getValue(BUFFER_makeBoardStats, RECT_MY, x, QQTetris.MyAreaHeight - 1);
+            final int c = getValue(rgbMySpace, RECT_MY, x, QQTetris.MyAreaHeight - 1);
             final int r = (c >> 16) & 0x000000FF;
             final int b = (c) & 0x000000FF;
             if (b > 150 && r < 180) {
-                BUFFER_doAutoBlue[i] = true;
+                autoBlue[i] = true;
                 // System.out.println("blue");
                 bluesCounter++;
             } else if (b == 53) {
                 // empty
                 break;
+                // fill: 0xFF000000
+                // -1: 0xFF2B7BB0
+                // +2: 0xFFDB5700
+                // arrow up: 0xFF2B7BB0
+                // arrow down: 0xFFDB008B
             }
-            // fill: 0xFF000000
-            // -1: 0xFF2B7BB0
-            // +2: 0xFFDB5700
-            // arrow up: 0xFF2B7BB0
-            // arrow down: 0xFFDB008B
         }
+        // System.out.println(Arrays.toString(BUFFER_doAutoBlue));
         if (bluesCounter > 0) {
-            for (boolean blue : BUFFER_doAutoBlue) {
-                if (blue) {
-                    QQTetris.press(MoveType.PERSON_ME);
-                    if (--bluesCounter == 0) {
-                        break;
-                    }
+            for (int j = 0; j < autoBlue.length; j++) {
+                if (autoBlue[j]) {
+                    QQTetris.pressDirect(MoveType.PERSON_ME);
+                    // System.out.println("blue");
+                    break;
                 } else {
-                    QQTetris.press(MoveType.SKIP_ITEM);
+                    QQTetris.pressDirect(MoveType.SKIP_ITEM);
                 }
             }
-            QQTetris.dirty = true;
+            return true;
         }
+        return false;
     }
 
     public static void press(MoveType move) throws InterruptedException {

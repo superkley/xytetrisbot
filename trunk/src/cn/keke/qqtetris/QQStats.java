@@ -45,10 +45,9 @@ public class QQStats {
     }
 
     public boolean isInDanger() {
-        if (calculate()) {
-            return this.lowest > 3 || highest > QQTetris.PiecesHeight - 8;
-        }
-        return false;
+        calculate();
+        // System.out.println("lowest: " + this.lowest + ", height: " + highest);
+        return this.lowest > 3 || highest > 8;
     }
 
     public final boolean isValid() {

@@ -250,10 +250,24 @@ public enum WorkflowStep {
             // send move finished to calculator
             // merge calculated board with finished move
             // calculator.mergeBoard(move);
-            QQTetris.calculationThread.mergeMove();
-            checkAutoBlue();
             this.missingTetromino = 0;
-            return DETECT_BLOCKS;
+            if (checkAutoBlue()) {
+                nosync = 0;
+                try {
+                    Thread.sleep(MIN_BLUE_TIME);
+                } catch (InterruptedException e) {
+                    // wait
+                }
+                return INITIAL_BOARD;
+            } else {
+                if (++nosync >= MAX_NOSYNC) {
+                    nosync = 0;
+                    return INITIAL_BOARD;
+                } else {
+                    QQTetris.calculationThread.mergeMove();
+                    return DETECT_BLOCKS;
+                }
+            }
         }
 
         @Override
@@ -264,11 +278,13 @@ public enum WorkflowStep {
     };
     private static final int[] RGB_SCREEN = new int[QQRobot.RECT_SCREEN.width * QQRobot.RECT_SCREEN.height];
     private static final int[] RGB_MY_SPACE = new int[QQRobot.RECT_MY.width * QQRobot.RECT_MY.height];
-
+    private static final int MAX_NOSYNC = 5;
+    private static final int MIN_BLUE_TIME = 500;
     protected final int delayMillis;
-    private int maxDuration = 50;
-    private int maxDurationNext = 50;
-    private int maxDurationError = 50;
+    private int maxDuration = 150;
+    private int maxDurationNext = 150;
+    private int maxDurationError = 200;
+    private static int nosync;
 
     WorkflowStep(final int delay) {
         this.delayMillis = delay;
@@ -285,16 +301,18 @@ public enum WorkflowStep {
     }
 
     private static long lastAutoBlue;
-    private static final long MIN_AUTO_BLUE_PAUSE = 5000;
+    private static final long MIN_AUTO_BLUE_PAUSE = 3000;
 
-    static void checkAutoBlue() {
+    static boolean checkAutoBlue() {
         if (QQTetris.isAutoBlue()) {
             final long now = System.currentTimeMillis();
             if (now > lastAutoBlue + MIN_AUTO_BLUE_PAUSE && CurrentData.CALCULATED.stats.isInDanger()) {
-                QQRobot.doAutoBlue();
+                // System.out.println("calc autoblue");
                 lastAutoBlue = now;
+                return QQRobot.doAutoBlue(RGB_MY_SPACE);
             }
         }
+        return false;
     }
 
     private final void checkDuration(final int duration) {
