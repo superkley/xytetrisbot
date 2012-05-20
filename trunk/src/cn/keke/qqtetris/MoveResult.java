@@ -154,7 +154,7 @@ public final class MoveResult {
                         QQTetris.pressDirect(MoveType.CLOCKWISE);
                     }
                     this.rotationDelta = 0;
-                    return;
+                    // return;
                 }
 
                 int moves = Math.abs(this.moveDelta);
@@ -168,7 +168,7 @@ public final class MoveResult {
                         }
                     }
                     moveDelta = 0;
-                    return;
+                    // return;
                 }
                 QQTetris.pressDirect(MoveType.FALL);
                 moveFinished = true;
