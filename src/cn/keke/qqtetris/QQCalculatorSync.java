@@ -105,10 +105,12 @@ public class QQCalculatorSync extends MoveCalculator {
                             if (stage > 0) {
                                 BoardUtils.mergeResults(BUFFER_BOARD, results);
                             }
-                            cleverPoints = findCleverMove(BUFFER_BOARD, br, x, y);
-                            if (cleverPoints != null) {
-                                s.cleverPoints = cleverPoints;
-                                y = cleverPoints.get(0).y;
+                            if (QQTetris.cleverMode) {
+                                cleverPoints = findCleverMove(BUFFER_BOARD, br, x, y);
+                                if (cleverPoints != null) {
+                                    s.cleverPoints = cleverPoints;
+                                    y = cleverPoints.get(0).y;
+                                }
                             }
                             if (stage > 0) {
                                 System.arraycopy(board, 0, BUFFER_BOARD, 0, board.length);

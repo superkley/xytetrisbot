@@ -55,7 +55,6 @@ public class TransformationTask implements Runnable {
         return this.result;
     }
 
-    @Override
     public void run() {
         // merge tranforms (inserts and cleanups)
         try {
@@ -152,9 +151,11 @@ public class TransformationTask implements Runnable {
                     final boolean[] boardCopy = TransformationTask.boardCopyLocal.get();
                     System.arraycopy(this.board, 0, boardCopy, 0, this.board.length);
                     BoardUtils.mergeResults(boardCopy, pr);
-                    cleverPoints = MoveCalculator.findCleverMove(boardCopy, rt, x, y);
-                    if (cleverPoints != null) {
-                        y = cleverPoints.get(0).y;
+                    if (QQTetris.cleverMode) {
+                        cleverPoints = MoveCalculator.findCleverMove(boardCopy, rt, x, y);
+                        if (cleverPoints != null) {
+                            y = cleverPoints.get(0).y;
+                        }
                     }
                 }
                 final boolean correctPlacement = prevLength > 0 || cleverPoints != null

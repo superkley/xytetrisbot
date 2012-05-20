@@ -37,7 +37,6 @@ public class OptimizerTask implements Runnable {
         this.min = min;
     }
 
-    @Override
     public void run() {
         try {
             if (scores[taskNr] == Integer.MIN_VALUE) {

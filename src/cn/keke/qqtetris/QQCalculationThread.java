@@ -1,13 +1,12 @@
 package cn.keke.qqtetris;
 
-import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 
 public class QQCalculationThread extends Thread {
     private Semaphore lock = new Semaphore(3);
     private final MoveCalculator calculator;
     private static final int SLEEP_MIN = 0;
-    private static final int SLEEP_MAX = 2000;
+    private static final int SLEEP_MAX = 1000;
     private int sleep = 200;
     private int maxDuration;
     private int maxDurationFailed;
@@ -22,14 +21,16 @@ public class QQCalculationThread extends Thread {
         this.lock.acquireUninterruptibly(this.lock.availablePermits());
         while (true) {
             this.lock.acquireUninterruptibly();
-            System.out.println("计算（开始）：" + Arrays.toString(CurrentData.CALCULATED.nextBlocks));
+            // System.out.println("计算（开始）：" + Arrays.toString(CurrentData.CALCULATED.nextBlocks));
             // QQDebug.printBoard(CurrentData.CALCULATED.board);
-            final long start = System.currentTimeMillis();
+            final long start = System.currentTimeMillis();            
             try {
                 if (this.calculator.start()) {
                     // System.out.println("计算（结束）：" + CurrentData.CALCULATED.tetromino.move);
-                    checkDuration((int) (System.currentTimeMillis() - start));
-                    QQTetris.captureScreenThread.followMove();
+                    final int duration = (int) (System.currentTimeMillis() - start);
+                    checkDuration(duration);
+                    // Thread.sleep(Math.max(0, sleep - duration));
+                    QQTetris.captureScreenThread.followMove();                    
                     continue;
                 }
             } catch (Throwable t) {
