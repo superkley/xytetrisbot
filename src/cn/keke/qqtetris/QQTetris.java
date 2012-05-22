@@ -306,6 +306,8 @@ public final class QQTetris extends JFrame implements HotkeyListener {
             JIntellitype.getInstance().registerHotKey(2, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_UP);
             JIntellitype.getInstance().registerHotKey(3, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_DOWN);
             JIntellitype.getInstance().registerHotKey(4, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_L);
+            JIntellitype.getInstance().registerHotKey(5, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_LEFT);
+            JIntellitype.getInstance().registerHotKey(6, JIntellitype.MOD_WIN + JIntellitype.MOD_ALT, KeyEvent.VK_RIGHT);
             JIntellitype.getInstance().addHotKeyListener(this);
         } catch (Throwable t) {
             System.err.println(t.toString());
@@ -388,6 +390,7 @@ public final class QQTetris extends JFrame implements HotkeyListener {
     // }
 
     public void onHotKey(int identifier) {
+    	int selected = QQTetris.cbStrategy.getSelectedIndex();
         switch (identifier) {
         case 1:
             startStopAction();
@@ -405,6 +408,16 @@ public final class QQTetris extends JFrame implements HotkeyListener {
                 QQTetris.autoBlue = true;
             }
             break;
+        case 5:
+        	  if (selected > 0) {
+        	  	  QQTetris.cbStrategy.setSelectedIndex(selected - 1);
+        	  }
+        	  break;
+        case 6:
+        	  if (selected < StrategyType.values().length - 1) {
+    	  	      QQTetris.cbStrategy.setSelectedIndex(selected + 1);
+    	      }
+        	  break;
         default:
             break;
         }
