@@ -1,3 +1,23 @@
+/*  Copyright (c) 2010 Xiaoyun Zhu
+ * 
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy  
+ *  of this software and associated documentation files (the "Software"), to deal  
+ *  in the Software without restriction, including without limitation the rights  
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+ *  copies of the Software, and to permit persons to whom the Software is  
+ *  furnished to do so, subject to the following conditions:
+ *  
+ *  The above copyright notice and this permission notice shall be included in  
+ *  all copies or substantial portions of the Software.
+ *  
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+ *  THE SOFTWARE.  
+ */
 package cn.keke.qqtetris;
 
 import java.awt.Point;
@@ -194,35 +214,40 @@ public final class MoveResult {
                 QQTetris.pressDirect(MoveType.CLOCKWISE);
             }
             this.rotationDelta = 0;
-            return;
+            // return;
         }
 
-        if (!this.cleverPoints.isEmpty()) {
-            final Point p = this.cleverPoints.removeLast();
-            final int tx = this.tetromino.x;
-            final int tY = this.tetromino.y;
-            final int dx = p.x - tx;
-            final int moves = Math.abs(dx);
-            for (int j = 0; j < moves; j++) {
-                if (dx > 0) {
-                    QQTetris.pressDirect(MoveType.RIGHT);
-                } else {
-                    QQTetris.pressDirect(MoveType.LEFT);
-                }
-            }
-            final int dy = p.y - tY;
-            for (int j = 0; j < dy; j++) {
-                if (fallen == 0) {
-                    QQTetris.pressDirect(MoveType.DOWN);
-                } else {
-                    fallen--;
-                }
-            }
-            this.tetromino.x = p.x;
-            this.tetromino.y = p.y;
-        } else {
+//        if (!this.cleverPoints.isEmpty()) {
+//            final Point p = this.cleverPoints.removeLast();
+				while (!this.cleverPoints.isEmpty()) {
+						final Point p = this.cleverPoints.removeLast();
+			
+						final int tx = this.tetromino.x;
+						final int tY = this.tetromino.y;
+						final int dx = p.x - tx;
+						final int moves = Math.abs(dx);
+						for (int j = 0; j < moves; j++) {
+								if (dx > 0) {
+										QQTetris.pressDirect(MoveType.RIGHT);
+								} else {
+										QQTetris.pressDirect(MoveType.LEFT);
+								}
+						}
+						final int dy = p.y - tY;
+						for (int j = 0; j < dy; j++) {
+								if (fallen == 0) {
+										QQTetris.pressDirect(MoveType.DOWN);
+								} else {
+										fallen--;
+								}
+						}
+						this.tetromino.x = p.x;
+						this.tetromino.y = p.y;
+				}    
             moveFinished = true;
-        }
+//        } else {
+//            moveFinished = true;
+//        }
         // QQDebug.printBoard(stats.boardData);
         // System.out.println(out.toString());
     }

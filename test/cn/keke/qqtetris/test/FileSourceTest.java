@@ -18,21 +18,40 @@
  *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
  *  THE SOFTWARE.  
  */
-package cn.keke.qqtetris;
-import java.awt.event.KeyEvent;
+package cn.keke.qqtetris.test;
 
-public enum MoveType {
-    LEFT(KeyEvent.VK_LEFT),
-    RIGHT(KeyEvent.VK_RIGHT),
-    CLOCKWISE(KeyEvent.VK_UP),
-    DOWN(KeyEvent.VK_DOWN),
-    FALL(KeyEvent.VK_SPACE),
-    SKIP_ITEM(KeyEvent.VK_S),
-    PERSON_ME(KeyEvent.VK_1);
-    
-    public final int KEY;
+import static cn.keke.qqtetris.QQRobot.readFuture2Block;
+import static cn.keke.qqtetris.QQRobot.readFutureBlock;
 
-    MoveType(int evt) {
-        this.KEY = evt;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import javax.imageio.ImageIO;
+
+import cn.keke.qqtetris.BlockType;
+
+public class FileSourceTest {
+
+    public static void testReadFuture1(String imgFile) {
+        try {
+            BufferedImage img = ImageIO.read(new File("D:\\tetris\\" + imgFile + ".png"));
+            BlockType t = readFutureBlock(img);
+            System.out.print(imgFile + ": ");
+            System.out.println(t);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void testReadFuture2(String imgFile) {
+        try {
+            BufferedImage img = ImageIO.read(new File("D:\\tetris\\" + imgFile + ".png"));
+            BlockType t = readFuture2Block(img);
+            System.out.print(imgFile + ": ");
+            System.out.println(t);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

@@ -1,3 +1,23 @@
+/*  Copyright (c) 2010 Xiaoyun Zhu
+ * 
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy  
+ *  of this software and associated documentation files (the "Software"), to deal  
+ *  in the Software without restriction, including without limitation the rights  
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+ *  copies of the Software, and to permit persons to whom the Software is  
+ *  furnished to do so, subject to the following conditions:
+ *  
+ *  The above copyright notice and this permission notice shall be included in  
+ *  all copies or substantial portions of the Software.
+ *  
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+ *  THE SOFTWARE.  
+ */
 package cn.keke.qqtetris;
 
 import cn.keke.qqtetris.exceptions.NoFuturesFoundException;
@@ -40,7 +60,7 @@ public enum WorkflowStep {
             captureScreen();
         }
     },
-    INITIAL_BOARD(200) {
+    INITIAL_BOARD(100) {
         @Override
         public boolean detect() {
             // detect board, tetromino and futures, check real tetromino
@@ -123,7 +143,7 @@ public enum WorkflowStep {
             captureMySpace();
         }
     },
-    DETECT_BLOCKS(100) {
+    DETECT_BLOCKS(50) {
         private int boardChangeDetected;
         private int missingTetromino;
         private int missingFutures;
@@ -195,7 +215,7 @@ public enum WorkflowStep {
             captureMySpace();
         }
     },
-    FOLLOW_MOVE(30) {
+    FOLLOW_MOVE(10) {
         private int missingTetromino;
 
         @Override

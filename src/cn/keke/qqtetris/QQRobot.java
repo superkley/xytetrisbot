@@ -1,3 +1,23 @@
+/*  Copyright (c) 2010 Xiaoyun Zhu
+ * 
+ *  Permission is hereby granted, free of charge, to any person obtaining a copy  
+ *  of this software and associated documentation files (the "Software"), to deal  
+ *  in the Software without restriction, including without limitation the rights  
+ *  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell  
+ *  copies of the Software, and to permit persons to whom the Software is  
+ *  furnished to do so, subject to the following conditions:
+ *  
+ *  The above copyright notice and this permission notice shall be included in  
+ *  all copies or substantial portions of the Software.
+ *  
+ *  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR  
+ *  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,  
+ *  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE  
+ *  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER  
+ *  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  
+ *  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN  
+ *  THE SOFTWARE.  
+ */
 package cn.keke.qqtetris;
 
 import static cn.keke.qqtetris.QQTetris.BoardCoordX;
@@ -36,7 +56,6 @@ import java.awt.event.InputEvent;
 import java.awt.image.BufferedImage;
 import java.awt.peer.RobotPeer;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 import sun.awt.ComponentFactory;
 import cn.keke.qqtetris.exceptions.BoardNotReadyException;
@@ -45,11 +64,10 @@ import cn.keke.qqtetris.exceptions.UnknownBlockTypeException;
 import cn.keke.qqtetris.exceptions.UnknownBoardStateException;
 
 public class QQRobot {
-    private static final StopWatch STOPPER = new StopWatch("robot");
     private static final boolean IGNORE_INVALID_BOARD_COLOR;
     private static final boolean IGNORE_INVALID_FUTURE_1;
     private static final boolean IGNORE_INVALID_FUTURE_2;
-    public static final int ROBOT_DELAY_MILLIS = 10;
+    public static final int ROBOT_DELAY_MILLIS = 5;
     private static RobotPeer ROBOT;
     private static Method ROBOT_getRGBPixels;
     public final static Rectangle RECT_SCREEN;
