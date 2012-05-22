@@ -215,8 +215,9 @@ public enum WorkflowStep {
             captureMySpace();
         }
     },
-    FOLLOW_MOVE(10) {
+    FOLLOW_MOVE(30) {
         private int missingTetromino;
+        private boolean firstScan = true;
 
         @Override
         public boolean detect() {
@@ -226,10 +227,11 @@ public enum WorkflowStep {
             // true if no more moves
             // false if there are still moves to do
             // error if cannot find piece or piece sticked
-            if (CurrentData.CALCULATED.tetromino.move.hasMove()) {
-                final Tetromino moveTetromino = CurrentData.CALCULATED.tetromino.move.tetromino;
-                final int ty = QQRobot.findTetromino(moveTetromino, 6);
-                if (ty == -1) {
+            final MoveResult move = CurrentData.CALCULATED.tetromino.move;
+						if (move.hasMove()) {
+                final Tetromino moveTetromino = move.tetromino;
+                final int y = QQRobot.findTetromino(moveTetromino, 5);
+                if (y == -1) {
                     missingTetromino++;
                     if (missingTetromino == 3) {
                         // System.out.println("没找到块" + nr + "！" + CurrentData.CALCULATED.tetromino.move + ", "
@@ -241,16 +243,23 @@ public enum WorkflowStep {
                         // CurrentData.CALCULATED.tetromino.move.doMove();
                     }
                 } else {
-                    final int fallen = ty - moveTetromino.y;
+                	  final int fallen = y - moveTetromino.y;
                     if (fallen > 0) {
                         // System.out.println("掉落：" + fallen);
-                        CurrentData.CALCULATED.tetromino.move.fallen = fallen;
-                        moveTetromino.y = ty;
-                    }
-                    CurrentData.CALCULATED.tetromino.move.doMove();
+                        moveTetromino.y = y;
+                    }                	  
+                	  if (move.clever) {
+                	  	  if (firstScan) {
+                	  	      firstScan = false;
+                	  	  } else if (fallen > 0) {
+			                      move.doMove();                	  	  	  
+                	  	  }
+                	  } else {
+		                    move.doMove();
+                	  }
                 }
             }
-            if (CurrentData.CALCULATED.tetromino.move.hasMove()) {
+            if (move.hasMove()) {
                 return false;
             } else {
                 // QQDebug.printBoard(CurrentData.CALCULATED.board);
@@ -262,6 +271,7 @@ public enum WorkflowStep {
         public WorkflowStep fail() {
             // err? game finished?
             this.missingTetromino = 0;
+            firstScan = true;
             return INITIAL_BOARD.execute(false);
         }
 
@@ -271,6 +281,7 @@ public enum WorkflowStep {
             // merge calculated board with finished move
             // calculator.mergeBoard(move);
             this.missingTetromino = 0;
+            firstScan = true;
             if (checkAutoBlue()) {
                 nosync = 0;
                 try {
@@ -356,7 +367,7 @@ public enum WorkflowStep {
         }
     }
 
-    private static void waitMillis(final WorkflowStep step, final int duration) {
+    private static final void waitMillis(final WorkflowStep step, final int duration) {
         try {
             Thread.sleep(Math.max(1, step.delayMillis - duration));
         } catch (InterruptedException e) {

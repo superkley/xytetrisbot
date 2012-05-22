@@ -56,15 +56,12 @@ public abstract class MoveCalculator {
     }
 
     public static final int findNextBlocksLimit(final BlockType[] blocks) {
-        int i = 0;
-        for (BlockType t : blocks) {
-            if (t != null) {
-                i++;
-            } else {
-                break;
-            }
-        }
-        return i;
+    	for (int i = 0; i < blocks.length; i++) {
+    		if (blocks[i] == null) {
+    			return i;
+    		}
+    	}
+      return blocks.length;
     }
 
     public void setLevel(QQLevel level) {
@@ -144,10 +141,6 @@ public abstract class MoveCalculator {
         }
         y = QQTetris.PiecesHeight - maxHeight;
         return y;
-    }
-
-    public static final void updateMoveAfterFallen(final MoveResult move, final int fallen) {
-        move.fallen = fallen;
     }
 
     protected boolean cancelled;

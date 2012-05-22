@@ -49,20 +49,20 @@ public final class QQScreenCaptureThread extends Thread {
     @Override
     public void run() {
         while (true) {
-            if (this.running) {
-                checkNextStep();
-                // final WorkflowStep oldStep = this.step;
-                step = step.execute();
-                // if (step != oldStep) {
-                // System.out.println("步：" + this.step);
-                // }
-            } else {
-                try {
-                    Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                    // ignore
-                }
-            }
+          	try {
+		            if (this.running) {
+		                checkNextStep();
+		                // final WorkflowStep oldStep = this.step;
+		                step = step.execute();
+		                // if (step != oldStep) {
+		                // System.out.println("步：" + this.step);
+		                // }
+		            } else {
+                    Thread.sleep(2000);
+		            }
+	          } catch (InterruptedException e) {
+	            // ignore
+		        }
         }
     }
 
@@ -80,6 +80,7 @@ public final class QQScreenCaptureThread extends Thread {
                 this.running = false;
                 this.setStarted(false);
                 QQTetris.setState(QQState.STOPPED);
+                interrupt();
             } finally {
                 this.runningLock.unlock();
             }
@@ -96,6 +97,7 @@ public final class QQScreenCaptureThread extends Thread {
                     // System.out.println("步：" + this.step);
                     this.setStarted(false);
                     this.running = true;
+                    interrupt();
                 } finally {
                     this.runningLock.unlock();
                 }
@@ -132,7 +134,7 @@ public final class QQScreenCaptureThread extends Thread {
             this.nextStep = WorkflowStep.INITIAL_BOARD;
             // System.out.println("步：" + this.nextStep);
         }
-
+        interrupt();
     }
 
     public void onFailure() {

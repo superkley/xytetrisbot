@@ -27,7 +27,7 @@ import static cn.keke.qqtetris.QQTetris.PiecesWidth;
 import java.util.Arrays;
 import java.util.Random;
 
-public class BoardUtils {
+public final class BoardUtils {
     private static final int[] EMPTY_DATA_STATS = new int[] { 0, 0 };
     private static final int[] EMPTY_DETAILED_DATA_STATS = new int[] { 0, 0, 0, 0, 0, 0, 0, 0 };
     private static final int HASH_SEED = 173;
@@ -161,11 +161,12 @@ public class BoardUtils {
     }
 
     public static final boolean getBlockValue(final boolean[] blockArray, final int x, final int y) {
-        if (x < 0 || y < 0 || x >= QQTetris.BlockDrawSize || y >= QQTetris.BlockDrawSize) {
-            return false;
-        } else {
-            return blockArray[getBlockPos(x, y)];
-        }
+	      final int blockPos = getBlockPos(x, y);
+	      if (blockPos < blockArray.length) {
+	      		return blockArray[blockPos];
+	      } else {
+	      		return false;
+	      }
     }
 
     private static final int getBlockPos(final int x, final int y) {
@@ -296,9 +297,9 @@ public class BoardUtils {
         }
         return clears;
     }
-
-    public static final int[] calcBoardHeight(final boolean[] boardArray) {
-        int[] result = new int[QQTetris.PiecesWidth];
+    
+    public static final int[] calcBoardHeights(final boolean[] boardArray) {
+        final int[] result = new int[QQTetris.PiecesWidth];
         int y;
         for (int x = 0; x < QQTetris.PiecesWidth; x++) {
             for (y = 0; y < QQTetris.PiecesHeight; y++) {
@@ -397,7 +398,7 @@ public class BoardUtils {
     public static final double mergeAndCalcScore(final boolean[] board, final TransformationResult[] prevResults,
             final StrategyType strategy, double[] strategyAttrs) {
         // copy board
-        int[] boardCopy = booleansToInts(board);
+        final int[] boardCopy = booleansToInts(board);
 
         // merge
         mergeResults(boardCopy, prevResults);
@@ -405,8 +406,15 @@ public class BoardUtils {
         return strategy.calculateScore(boardCopy, strategyAttrs);
     }
 
+    private static final ThreadLocal<int[]> BUFFER_booleansToInts = new ThreadLocal<int[]>() {
+	      @Override
+	      protected int[] initialValue() {
+	          return new int[QQTetris.BoardWidth * QQTetris.BoardHeight];
+	      }
+    };
+
     public static final int[] booleansToInts(final boolean[] board) {
-        int[] boardCopy = new int[board.length];
+        final int[] boardCopy = BUFFER_booleansToInts.get();
         for (int i = 0; i < board.length; i++) {
             boardCopy[i] = board[i] ? 1 : 0;
         }
@@ -450,14 +458,13 @@ public class BoardUtils {
     }
 
     public final static void mergeResults(final int[] boardCopy, final TransformationResult[] prevResults) {
-        BlockRotation br;
         for (TransformationResult tr : prevResults) {
-            br = tr.getBlock().rotations[tr.getRotationIdx()];
-            int x = tr.getX();
-            int y = tr.getY();
+        		final BlockRotation br = tr.getBlock().rotations[tr.getRotationIdx()];
+            final int x = tr.getX();
+            final int y = tr.getY();
             for (int j = y + br.freeTop; j < y + br.freeTop + br.height; j++) {
                 for (int i = x + br.freeLeft; i < x + br.freeLeft + br.width; i++) {
-                    boolean blockPiece = getBlockValue(br.form, i - x, j - y);
+                    final boolean blockPiece = getBlockValue(br.form, i - x, j - y);
                     if (blockPiece && i >= 0 && j >= 0 && i < PiecesWidth && j < PiecesHeight) {
                         boardCopy[getBoardPos(i, j)] = 2;
                     }

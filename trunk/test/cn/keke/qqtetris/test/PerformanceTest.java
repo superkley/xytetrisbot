@@ -64,7 +64,7 @@ public class PerformanceTest extends TestCase {
                 );
         // @formatter:on
         STOPPER.start();
-        final int rounds = 10;
+        final int rounds = 100;
         for (int i = 0; i < rounds; i++) {
             this.calculatorSync.findBestMove(
                     CurrentData.CALCULATED.set(testBoard1, new Tetromino(BlockType.L, 0, 0, 0), new BlockType[] {

@@ -105,12 +105,12 @@ public class QQRobot {
     }
 
     public static void click(int x, int y) throws InterruptedException {
-        Point oldLocation = MouseInfo.getPointerInfo().getLocation();
+        final Point oldLocation = MouseInfo.getPointerInfo().getLocation();
         ROBOT.mouseMove(RECT_SCREEN.x + x, RECT_SCREEN.y + y);
         ROBOT.mousePress(InputEvent.BUTTON1_MASK);
-        Thread.sleep(ROBOT_DELAY_MILLIS);
+        Thread.sleep(1);
         ROBOT.mouseRelease(InputEvent.BUTTON1_MASK);
-        Thread.sleep(ROBOT_DELAY_MILLIS);
+        Thread.sleep(1);
         ROBOT.mouseMove(oldLocation.x, oldLocation.y);
         if (QQTetris.DEBUG) {
             System.out.println("鼠：" + x + ", " + y);

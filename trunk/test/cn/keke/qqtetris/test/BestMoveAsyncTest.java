@@ -28,6 +28,7 @@ import cn.keke.qqtetris.MoveCalculator;
 import cn.keke.qqtetris.MoveResult;
 import cn.keke.qqtetris.QQCalculatorAsync;
 import cn.keke.qqtetris.QQDebug;
+import cn.keke.qqtetris.QQTetris;
 import cn.keke.qqtetris.StopWatch;
 import cn.keke.qqtetris.StrategyType;
 import cn.keke.qqtetris.Tetromino;
@@ -38,6 +39,11 @@ public class BestMoveAsyncTest extends TestCase {
 
     // private MoveCalculator calculator = new QQCalculatorAsync();
 
+    @Override
+    public void setUp() {
+    	QQTetris.cleverMode = false;	
+    }
+    
     public void testFreeSlots() {
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
@@ -75,6 +81,9 @@ public class BestMoveAsyncTest extends TestCase {
                 CurrentData.CALCULATED.nextBlocks, CurrentData.CALCULATED.stats, StrategyType.NORMAL,
                 StrategyType.NORMAL.getAttrs(false));
         System.out.println(CurrentData.CALCULATED.tetromino.move);
+        BoardUtils.mergeMoveResult(CurrentData.CALCULATED.board, CurrentData.CALCULATED.tetromino,
+            CurrentData.CALCULATED.tetromino.move);
+        QQDebug.printBoard(CurrentData.CALCULATED.board);
         assertEquals(2, CurrentData.CALCULATED.tetromino.move.moveDelta);
         assertEquals(1, CurrentData.CALCULATED.tetromino.move.rotationDelta);
     }
@@ -242,6 +251,9 @@ public class BestMoveAsyncTest extends TestCase {
         MoveResult move = this.calculator.findBestMove(CurrentData.CALCULATED.set(testBoard1, new Tetromino(
                 BlockType.O, 0, 0, 0), new BlockType[] { BlockType.O }), StrategyType.NORMAL, StrategyType.NORMAL
                 .getAttrs(false));
+        BoardUtils.mergeMoveResult(CurrentData.CALCULATED.board, CurrentData.CALCULATED.tetromino,
+            CurrentData.CALCULATED.tetromino.move);
+        QQDebug.printBoard(CurrentData.CALCULATED.board);
         assertTrue(move.isValid());
         assertEquals(0, move.moveDelta);
         assertEquals(0, move.rotationDelta);
@@ -282,6 +294,7 @@ public class BestMoveAsyncTest extends TestCase {
     }
 
     public void testClever() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -317,6 +330,7 @@ public class BestMoveAsyncTest extends TestCase {
     }
 
     public void testCleverI() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -390,6 +404,7 @@ public class BestMoveAsyncTest extends TestCase {
     }
 
     public void testCleverJ2() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -428,6 +443,7 @@ public class BestMoveAsyncTest extends TestCase {
     }
 
     public void testCleverL1() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -549,6 +565,7 @@ public class BestMoveAsyncTest extends TestCase {
     }
 
     public void testCleverL() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -571,7 +588,7 @@ public class BestMoveAsyncTest extends TestCase {
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0,
                 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0,
-                1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 0
+                1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 1
                 );
         // @formatter:on
         MoveResult move = this.calculator.findBestMove(CurrentData.CALCULATED.set(testBoard1, new Tetromino(
@@ -582,10 +599,11 @@ public class BestMoveAsyncTest extends TestCase {
         QQDebug.printBoard(testBoard1);
         assertTrue(move.isValid());
         assertEquals(MoveResult.CLEVER_MOVE, move.moveDelta);
-        assertEquals(8, move.x);
+        assertEquals(7, move.x);
     }
 
     public void testCleverT() {
+    	QQTetris.cleverMode = true;
         // @formatter:off
         boolean[] testBoard1 = BoardUtils.intsToBooleans(
                 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
