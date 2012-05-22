@@ -143,9 +143,9 @@ public enum StrategyType {
 		return calculateScore(boardCopy, this.attrs);
 	}
 
-	public double calculateScore(final int[] boardCopy, double[] attributes) {
+	public double calculateScore(final int[] boardCopy, final double[] attributes) {
 		// clears lines
-		int clears = BoardUtils.clearFullLines(boardCopy);
+		final int clears = BoardUtils.clearFullLines(boardCopy);
 
 		// calculate stats
 		int holes = 0;
@@ -162,8 +162,7 @@ public enum StrategyType {
 		int h;
 		boolean empty;
 		int v, y;
-		int occupied = 0;
-		int[] surface = new int[QQTetris.PiecesWidth];
+		final int[] surface = new int[QQTetris.PiecesWidth];
 		for (int x = 0; x < QQTetris.PiecesWidth; x++) {
 			// top-down
 			empty = true;
@@ -171,7 +170,6 @@ public enum StrategyType {
 			for (y = 0; y < QQTetris.PiecesHeight; y++) {
 				v = boardCopy[BoardUtils.getBoardPos(x, y)];
 				if (v > 0) {
-					occupied++;
 					h = PiecesHeight - y;
 					heights += h;
 					if (v == 2) {
@@ -234,21 +232,21 @@ public enum StrategyType {
 
 		int aversionCount = 0;
 		for (y = QQTetris.PiecesHeight - 1; y >= 0; y--) {
-			v = boardCopy[BoardUtils.getBoardPos(hMinX, y)];
-			if (v > 0) {
-				empty = true;
+			if (boardCopy[BoardUtils.getBoardPos(hMinX, y)] > 0) {
 				aversionCount++;
 			}
 		}
 
-		double tetrisBonus = 0;
+		final double tetrisBonus;
 		if (clears > 3) {
 			tetrisBonus = clears * attributes[SCORE_TETRIS];
+		} else {
+			tetrisBonus = 0;
 		}
 
-		int surfacePoints = calculateSurfacePoints(surface);
+		final int surfacePoints = calculateSurfacePoints(surface);
 
-		double score = clears * attributes[SCORE_CLEAR] + edges
+		final double score = clears * attributes[SCORE_CLEAR] + edges
 				* attributes[SCORE_EDGE] + walls * attributes[SCORE_WALL]
 				+ floors * attributes[SCORE_FLOOR] + heights
 				* attributes[SCORE_HEIGHT] + holes * attributes[SCORE_HOLE]
@@ -270,8 +268,8 @@ public enum StrategyType {
 		return score;
 	}
 
-	private int calculateSurfacePoints(int[] surface) {
-		boolean[] surfaceShapes = new boolean[16];
+	private int calculateSurfacePoints(final int[] surface) {
+		final boolean[] surfaceShapes = new boolean[16];
 		for (int i = 1; i < surface.length; i++) {
 			if (surface[i] == surface[i - 1]) {
 				surfaceShapes[0] = true;
@@ -297,7 +295,7 @@ public enum StrategyType {
 					surfaceShapes[10] = true;
 				}
 			}
-			int diff = surface[i] - surface[i - 1];
+			final int diff = surface[i] - surface[i - 1];
 			switch (diff) {
 			case 1:
 				surfaceShapes[8] = true;

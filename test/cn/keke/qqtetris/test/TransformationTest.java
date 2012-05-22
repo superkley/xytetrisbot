@@ -61,14 +61,14 @@ public class TransformationTest extends TestCase {
     private static final TransformationResult[] TEST_RESULTS_1 = { r1, r2 };
 
     public void testPiecesHeight() {
-        int[] heights = BoardUtils.calcBoardHeight(TEST_BOARD_1);
+        int[] heights = BoardUtils.calcBoardHeights(TEST_BOARD_1);
         assertEquals(5, heights[5]);
         assertEquals(0, heights[0]);
         assertEquals(1, heights[11]);
     }
 
     public void testPiecesHeightMerge() {
-        int[] heights = BoardUtils.calcPiecesHeight(BoardUtils.calcBoardHeight(TEST_BOARD_1), TEST_RESULTS_1);
+        int[] heights = BoardUtils.calcPiecesHeight(BoardUtils.calcBoardHeights(TEST_BOARD_1), TEST_RESULTS_1);
         System.out.println(Arrays.toString(heights));
         assertEquals(1, heights[0]);
         assertEquals(2, heights[1]);

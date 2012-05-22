@@ -76,7 +76,6 @@ public final class MoveResult {
         this.moveDelta = CLEVER_MOVE;
         this.cleverPoints.clear();
         this.cleverPoints.addAll(points);
-        this.fallen = 0;
         this.moveFinished = false;
         this.valid = true;
         this.clever = true;
@@ -93,7 +92,6 @@ public final class MoveResult {
             this.score = Double.NEGATIVE_INFINITY;
             this.valid = false;
             this.moveFinished = true;
-            this.fallen = 0;
             this.clever = false;
         } else {
             this.rIdx = result.getRotationIdx();
@@ -106,7 +104,6 @@ public final class MoveResult {
             this.rotationDelta = rotationDelta;
             this.valid = true;
             this.moveFinished = false;
-            this.fallen = 0;
             this.clever = false;
         }
         return this;
@@ -141,7 +138,6 @@ public final class MoveResult {
     public double score;
     public Tetromino tetromino = new Tetromino(this);
     public boolean moveFinished;
-    public int fallen;
     public boolean clever;
 
     @Override
@@ -235,11 +231,7 @@ public final class MoveResult {
 						}
 						final int dy = p.y - tY;
 						for (int j = 0; j < dy; j++) {
-								if (fallen == 0) {
-										QQTetris.pressDirect(MoveType.DOWN);
-								} else {
-										fallen--;
-								}
+						    QQTetris.pressDirect(MoveType.DOWN);
 						}
 						this.tetromino.x = p.x;
 						this.tetromino.y = p.y;
