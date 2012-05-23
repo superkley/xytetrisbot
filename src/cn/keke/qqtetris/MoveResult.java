@@ -26,8 +26,8 @@ import java.util.LinkedList;
 import cn.keke.qqtetris.exceptions.MoveExpiredException;
 import cn.keke.qqtetris.exceptions.MoveNotPossibleException;
 
-public final class MoveResult {
-    private final LinkedList<Point> cleverPoints;
+public abstract class MoveResult {
+    protected final LinkedList<Point> cleverPoints;
     private boolean valid;
 
     @Override
@@ -153,97 +153,27 @@ public final class MoveResult {
     public void doMove() {
         try {
             QQTetris.activate();
-            if (System.currentTimeMillis() - ts > 2000) {
-                throw new MoveExpiredException("Move expired!");
+            if (System.currentTimeMillis() - ts > QQTetris.SLEEP_MAX + 50) {
+                throw new MoveExpiredException("操作异常！");
             }
             if (clever) {
                 doCleverMove();
             } else {
-                if (this.rotationDelta > 0) {
-                    this.tetromino.rotationIdx += this.rotationDelta;
-                    if (this.tetromino.rotationIdx >= this.tetromino.block.rotations.length) {
-                        this.tetromino.rotationIdx -= this.tetromino.block.rotations.length;
-                    }
-                    this.tetromino.rotation = this.tetromino.block.rotations[this.tetromino.rotationIdx];
-
-                    for (int i = 0; i < this.rotationDelta; i++) {
-                        QQTetris.pressDirect(MoveType.CLOCKWISE);
-                    }
-                    this.rotationDelta = 0;
-                    // return;
-                }
-
-                int moves = Math.abs(this.moveDelta);
-                if (moves > 0) {
-                    this.tetromino.x += moveDelta;
-                    for (int i = 0; i < moves; i++) {
-                        if (moveDelta > 0) {
-                            QQTetris.pressDirect(MoveType.RIGHT);
-                        } else {
-                            QQTetris.pressDirect(MoveType.LEFT);
-                        }
-                    }
-                    moveDelta = 0;
-                    // return;
-                }
-                QQTetris.pressDirect(MoveType.FALL);
-                moveFinished = true;
+                doNormalMove();
             }
         } catch (Exception e) {
             throw new MoveNotPossibleException("操作失败！");
         }
     }
 
+    protected abstract void doCleverMove();
+    
+    protected abstract void doNormalMove();
+    
     public final boolean hasMove() {
         return !moveFinished;
     }
-
-    public final void doCleverMove() throws InterruptedException {
-        if (this.rotationDelta > 0) {
-            this.tetromino.rotationIdx += this.rotationDelta;
-            if (this.tetromino.rotationIdx >= this.tetromino.block.rotations.length) {
-                this.tetromino.rotationIdx -= this.tetromino.block.rotations.length;
-            }
-            this.tetromino.rotation = this.tetromino.block.rotations[this.tetromino.rotationIdx];
-
-            for (int i = 0; i < this.rotationDelta; i++) {
-                QQTetris.pressDirect(MoveType.CLOCKWISE);
-            }
-            this.rotationDelta = 0;
-            // return;
-        }
-
-//        if (!this.cleverPoints.isEmpty()) {
-//            final Point p = this.cleverPoints.removeLast();
-				while (!this.cleverPoints.isEmpty()) {
-						final Point p = this.cleverPoints.removeLast();
-			
-						final int tx = this.tetromino.x;
-						final int tY = this.tetromino.y;
-						final int dx = p.x - tx;
-						final int moves = Math.abs(dx);
-						for (int j = 0; j < moves; j++) {
-								if (dx > 0) {
-										QQTetris.pressDirect(MoveType.RIGHT);
-								} else {
-										QQTetris.pressDirect(MoveType.LEFT);
-								}
-						}
-						final int dy = p.y - tY;
-						for (int j = 0; j < dy; j++) {
-						    QQTetris.pressDirect(MoveType.DOWN);
-						}
-						this.tetromino.x = p.x;
-						this.tetromino.y = p.y;
-				}    
-            moveFinished = true;
-//        } else {
-//            moveFinished = true;
-//        }
-        // QQDebug.printBoard(stats.boardData);
-        // System.out.println(out.toString());
-    }
-
+    
     public boolean isValid() {
         return valid;
     }

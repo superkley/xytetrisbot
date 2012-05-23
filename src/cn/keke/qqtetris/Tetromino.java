@@ -46,7 +46,7 @@ public class Tetromino {
     }
 
     public Tetromino() {
-        this.move = new MoveResult(null, null, 0, 0, false);
+        this.move = new MoveResultSlow(null, null, 0, 0, false);
     }
     
     public Tetromino(MoveResult move) {

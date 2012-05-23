@@ -25,9 +25,6 @@ import java.util.concurrent.Semaphore;
 public class QQCalculationThread extends Thread {
     private Semaphore lock = new Semaphore(3);
     private final MoveCalculator calculator;
-    private static final int SLEEP_MIN = 0;
-    private static final int SLEEP_MAX = 1000;
-    private int sleep = 200;
     private int maxDuration;
     private int maxDurationFailed;
 
@@ -92,35 +89,4 @@ public class QQCalculationThread extends Thread {
             CurrentData.CALCULATED.stats.setCalculate(false);
         }
     }
-
-    public void increaseSpeed() {
-        this.setSleep(this.sleep - 50);
-    }
-
-    private final void setSleep(final int sleep) {
-        if (sleep >= SLEEP_MIN && sleep <= SLEEP_MAX) {
-            this.sleep = sleep;
-        } else if (sleep < SLEEP_MIN) {
-            this.sleep = SLEEP_MIN;
-        } else {
-            this.sleep = SLEEP_MAX;
-        }
-    }
-
-    public void decreaseSpeed() {
-        this.setSleep(this.sleep + 50);
-    }
-
-    public String getSpeedPct() {
-        int range = SLEEP_MAX - SLEEP_MIN;
-        long pct = Math.round(100 - (this.sleep - SLEEP_MIN) * 100.0 / range);
-        if (pct < 10) {
-            return "  " + pct + "%";
-        } else if (pct < 100) {
-            return " " + pct + "%";
-        } else {
-            return pct + "%";
-        }
-    }
-
 }

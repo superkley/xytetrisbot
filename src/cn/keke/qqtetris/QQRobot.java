@@ -67,7 +67,7 @@ public class QQRobot {
     private static final boolean IGNORE_INVALID_BOARD_COLOR;
     private static final boolean IGNORE_INVALID_FUTURE_1;
     private static final boolean IGNORE_INVALID_FUTURE_2;
-    public static final int ROBOT_DELAY_MILLIS = 5;
+    public static final int ROBOT_DELAY_MILLIS = 6;
     private static RobotPeer ROBOT;
     private static Method ROBOT_getRGBPixels;
     public final static Rectangle RECT_SCREEN;
