@@ -108,7 +108,10 @@ public final class QQTetris extends JFrame implements HotkeyListener {
     public static ExecutorService executor = Executors.newSingleThreadExecutor();
     // private static final KeyboardThread keyThread = new KeyboardThread();
     public static boolean cleverMode = false;
-
+    public static final int SLEEP_MIN = 0;
+    public static final int SLEEP_MAX = 1000;
+    private static int sleep = 200;
+    
     static {
         if (Runtime.getRuntime().availableProcessors() > 2) {
             if (DEBUG) {
@@ -133,7 +136,7 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         cbStrategy.setFont(font);
         btnSpeedPlus = new JButton(ACTION_SPEED_PLUS);
         btnSpeedMinus = new JButton(ACTION_SPEED_MINUS);
-        tfSpeedPct = new JTextField(calculationThread.getSpeedPct());
+        tfSpeedPct = new JTextField();
         tfSpeedPct.setFont(font);
         btnSpeedPlus.setFont(font);
         btnSpeedMinus.setFont(font);
@@ -220,14 +223,15 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         ActionListener speedActionListener = new ActionListener() {
             public void actionPerformed(ActionEvent ev) {
                 if (ev.getActionCommand() == ACTION_SPEED_MINUS) {
-                    calculationThread.decreaseSpeed();
+                    decreaseSpeed();
                 } else {
-                    calculationThread.increaseSpeed();
+                    increaseSpeed();
                 }
-                tfSpeedPct.setText(calculationThread.getSpeedPct());
+                tfSpeedPct.setText(getSpeedPct());
                 activate();
             }
         };
+        tfSpeedPct.setText(getSpeedPct());
         tfSpeedPct.addMouseListener(new MouseAdapter() {
             public void mouseClicked(MouseEvent e) {
                 QQLevel level = calculator.getLevel();
@@ -396,10 +400,10 @@ public final class QQTetris extends JFrame implements HotkeyListener {
             startStopAction();
             break;
         case 2:
-            calculationThread.increaseSpeed();
+            increaseSpeed();
             break;
         case 3:
-            calculationThread.decreaseSpeed();
+            decreaseSpeed();
             break;
         case 4:
             if (QQTetris.autoBlue) {
@@ -422,7 +426,7 @@ public final class QQTetris extends JFrame implements HotkeyListener {
             break;
         }
         updateContainerColor();
-        tfSpeedPct.setText(calculationThread.getSpeedPct());
+        tfSpeedPct.setText(getSpeedPct());
         activate();
     }
 
@@ -438,4 +442,38 @@ public final class QQTetris extends JFrame implements HotkeyListener {
         }
     }
 
+
+    public final static void increaseSpeed() {
+        setSleep(sleep - 50);
+    }
+
+    private final static void setSleep(final int s) {
+        if (s >= SLEEP_MIN && s <= SLEEP_MAX) {
+            sleep = s;
+        } else if (s < SLEEP_MIN) {
+            sleep = SLEEP_MIN;
+        } else {
+            sleep = SLEEP_MAX;
+        }
+    }
+
+    public final static void decreaseSpeed() {
+        setSleep(sleep + 50);
+    }
+
+    public final static String getSpeedPct() {
+        int range = SLEEP_MAX - SLEEP_MIN;
+        long pct = Math.round(100 - (sleep - SLEEP_MIN) * 100.0 / range);
+        if (pct < 10) {
+            return "  " + pct + "%";
+        } else if (pct < 100) {
+            return " " + pct + "%";
+        } else {
+            return pct + "%";
+        }
+    }
+    
+    public final static int getSleep() {
+    	return sleep;
+    }
 }

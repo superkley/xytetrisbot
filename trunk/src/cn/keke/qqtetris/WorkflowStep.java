@@ -227,10 +227,11 @@ public enum WorkflowStep {
             // true if no more moves
             // false if there are still moves to do
             // error if cannot find piece or piece sticked
+        	  slowDown();
             final MoveResult move = CurrentData.CALCULATED.tetromino.move;
 						if (move.hasMove()) {
                 final Tetromino moveTetromino = move.tetromino;
-                final int y = QQRobot.findTetromino(moveTetromino, 5);
+                final int y = QQRobot.findTetromino(moveTetromino, 3 + missingTetromino * 2);
                 if (y == -1) {
                     missingTetromino++;
                     if (missingTetromino == 3) {
@@ -266,6 +267,31 @@ public enum WorkflowStep {
                 return true;
             }
         }
+
+				private final void slowDown() {
+						if (timeCalculationStarted > 0) {
+								long sleepTime = (timeCalculationStarted + QQTetris.getSleep()) - System.currentTimeMillis();
+								CurrentData.CALCULATED.stats.calculate();
+								final int h = CurrentData.CALCULATED.stats.highest;
+								if (h > QQTetris.PiecesHeight - 6) {
+									return;
+								} else if (h > QQTetris.PiecesHeight - 13) {
+									sleepTime *= 0.25; 
+								} else if (h > QQTetris.PiecesHeight - 15) {
+									sleepTime *= 0.5; 
+								} else if (h > QQTetris.PiecesHeight - 17) {
+									sleepTime *= 0.75; 
+								}
+								if (sleepTime > 0) {
+									  try {
+											Thread.sleep(sleepTime);
+											timeCalculationStarted = 0;
+										} catch (InterruptedException e) {
+											// ignore
+										}
+								}
+						}
+				}
 
         @Override
         public WorkflowStep fail() {
@@ -316,6 +342,7 @@ public enum WorkflowStep {
     private int maxDurationNext = 150;
     private int maxDurationError = 200;
     private static int nosync;
+    private static long timeCalculationStarted;
 
     WorkflowStep(final int delay) {
         this.delayMillis = delay;
@@ -422,6 +449,7 @@ public enum WorkflowStep {
     }
 
     private static void startCalculator(final boolean copyBoard) {
+    	  timeCalculationStarted = System.currentTimeMillis();
         if (copyBoard) {
             System.arraycopy(CurrentData.REAL.board, 0, CurrentData.CALCULATED.board, 0,
                     CurrentData.CALCULATED.board.length);
