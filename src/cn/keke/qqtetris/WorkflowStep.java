@@ -297,6 +297,7 @@ public enum WorkflowStep {
         public WorkflowStep fail() {
             // err? game finished?
             this.missingTetromino = 0;
+            timeCalculationStarted = 0;
             firstScan = true;
             return INITIAL_BOARD.execute(false);
         }
@@ -307,6 +308,7 @@ public enum WorkflowStep {
             // merge calculated board with finished move
             // calculator.mergeBoard(move);
             this.missingTetromino = 0;
+            timeCalculationStarted = 0;
             firstScan = true;
             if (checkAutoBlue()) {
                 nosync = 0;
