@@ -109,8 +109,8 @@ public final class QQTetris extends JFrame implements HotkeyListener {
     // private static final KeyboardThread keyThread = new KeyboardThread();
     public static boolean cleverMode = false;
     public static final int SLEEP_MIN = 0;
-    public static final int SLEEP_MAX = 1000;
-    private static int sleep = 200;
+    public static final int SLEEP_MAX = 3000;
+    private static int sleep = 300;
     
     static {
         if (Runtime.getRuntime().availableProcessors() > 2) {

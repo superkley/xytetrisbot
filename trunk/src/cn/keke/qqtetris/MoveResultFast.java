@@ -24,7 +24,7 @@ public class MoveResultFast extends MoveResult {
 		}
 
 		if (this.moveDelta != 0) {
-			final int moves = Math.abs(this.moveDelta);		
+			final int moves = Math.abs(this.moveDelta);
 			this.tetromino.x += moveDelta;
 			for (int i = 0; i < moves; i++) {
 				if (moveDelta > 0) {
@@ -59,21 +59,26 @@ public class MoveResultFast extends MoveResult {
 
 			final int tx = this.tetromino.x;
 			final int tY = this.tetromino.y;
-			final int dx = p.x - tx;
-			final int moves = Math.abs(dx);
-			for (int j = 0; j < moves; j++) {
-				if (dx > 0) {
-					QQTetris.pressDirect(MoveType.RIGHT);
-				} else {
-					QQTetris.pressDirect(MoveType.LEFT);
-				}
-			}
 			final int dy = p.y - tY;
-			for (int j = 0; j < dy; j++) {
-				QQTetris.pressDirect(MoveType.DOWN);
+			if (dy > 0) {
+				for (int j = 0; j < dy; j++) {
+					QQTetris.pressDirect(MoveType.DOWN);
+				}
+				this.tetromino.y = p.y;
 			}
-			this.tetromino.x = p.x;
-			this.tetromino.y = p.y;
+			
+			final int dx = p.x - tx;
+			if (dx != 0) {
+				final int moves = Math.abs(dx);
+				for (int j = 0; j < moves; j++) {
+					if (dx > 0) {
+						QQTetris.pressDirect(MoveType.RIGHT);
+					} else {
+						QQTetris.pressDirect(MoveType.LEFT);
+					}
+				}
+				this.tetromino.x = p.x;
+			}
 		}
 		moveFinished = true;
 	}
