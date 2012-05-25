@@ -274,13 +274,15 @@ public enum WorkflowStep {
 								CurrentData.CALCULATED.stats.calculate();
 								final int h = CurrentData.CALCULATED.stats.highest;
 								if (h > QQTetris.PiecesHeight - 6) {
-									return;
+									sleepTime *= 0.5;
+								} else if (h > QQTetris.PiecesHeight - 10) {
+									sleepTime *= 0.6; 
 								} else if (h > QQTetris.PiecesHeight - 13) {
-									sleepTime *= 0.25; 
+									sleepTime *= 0.7; 
 								} else if (h > QQTetris.PiecesHeight - 15) {
-									sleepTime *= 0.5; 
+									sleepTime *= 0.8; 
 								} else if (h > QQTetris.PiecesHeight - 17) {
-									sleepTime *= 0.75; 
+									sleepTime *= 0.9; 
 								}
 								if (sleepTime > 0) {
 									  try {
@@ -319,13 +321,17 @@ public enum WorkflowStep {
                 }
                 return INITIAL_BOARD;
             } else {
-                if (++nosync >= MAX_NOSYNC) {
-                    nosync = 0;
-                    return INITIAL_BOARD;
-                } else {
-                    QQTetris.calculationThread.mergeMove();
-                    return DETECT_BLOCKS;
-                }
+	            	if (QQTetris.getSleep() < 300) {
+		                if (++nosync >= MAX_NOSYNC) {
+		                    nosync = 0;
+		                    return INITIAL_BOARD;
+		                } else {
+		                    QQTetris.calculationThread.mergeMove();
+		                    return DETECT_BLOCKS;
+		                }
+	            	} else {
+	            			return INITIAL_BOARD;
+	            	}
             }
         }
 
